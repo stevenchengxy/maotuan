@@ -1,1 +1,4 @@
-{ "version": "0.0.1", "configurations": [ { "name": "renderer", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "8766", "--directory", "renderer"], "port": 8766 } ] }
+{ "version": "0.0.1", "configurations": [
+  { "name": "renderer", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "8766", "--directory", "renderer"], "port": 8766 },
+  { "name": "gallery", "runtimeExecutable": "npm", "runtimeArgs": ["--prefix", "/Users/chengxiyan/Desktop/Yuhan_Museum/museum-web-gallery", "run", "dev", "--", "-p", "3007"], "port": 3007 }
+] }

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/pet-fluff.png" width="180" alt="毛团">
+  <img src="docs/hero.png" width="820" alt="毛团在桌面上：聊天窗、它画的四格漫画、和它自己">
 </p>
 
 <h1 align="center">毛团</h1>

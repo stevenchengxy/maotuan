@@ -497,6 +497,19 @@ async function devShots() {
     log("DEV DONE");
   } catch (e) { log("shot failed", e); }
 }
+// 开发用：把任意 HTML / 网址渲染成 PNG（MAOTUAN_SNAP="源,输出.png,宽x高[,等待毫秒]"）
+let snapBusy = false;
+async function devSnap() {
+  if (snapBusy) return; snapBusy = true;
+  const [src, out, size, wait] = process.env.MAOTUAN_SNAP.split(",");
+  const [w, h] = (size || "1440x900").split("x").map(Number);
+  const win = new BrowserWindow({ width: w, height: h, show: false, frame: false, webPreferences: { preload: PRELOAD, contextIsolation: true, sandbox: true, offscreen: false } });
+  if (/^https?:/.test(src)) await win.loadURL(src); else await win.loadFile(src);
+  await new Promise(r => setTimeout(r, Number(wait) || 1500));
+  const img = await win.webContents.capturePage(); fs.writeFileSync(out, img.toPNG());
+  log("SNAP saved", out, img.getSize()); win.destroy();
+  setTimeout(() => { quitting = true; app.quit(); }, 300);
+}
 let iconBusy = false;
 async function devIcon() {
   if (iconBusy) return; iconBusy = true;
@@ -525,7 +538,7 @@ function wireIpc() {
   ipcMain.on("pet:click", () => togglePanel());
   ipcMain.on("pet:menu", () => { if (pet) Menu.buildFromTemplate(commonMenu()).popup({ window: pet }); });
   ipcMain.on("pet:petted", () => { store.set("pets", (store.get("pets") || 0) + 1); });
-  ipcMain.on("pet:ready", () => { sendPet("state", publicState()); if (process.env.MAOTUAN_SHOT) setTimeout(devShots, 2500); if (process.env.MAOTUAN_ICON) setTimeout(devIcon, 800); });
+  ipcMain.on("pet:ready", () => { sendPet("state", publicState()); if (process.env.MAOTUAN_SHOT) setTimeout(devShots, 2500); if (process.env.MAOTUAN_ICON) setTimeout(devIcon, 800); if (process.env.MAOTUAN_SNAP) setTimeout(devSnap, 300); });
   ipcMain.on("voice:ended", (_e, { id }) => { const r = pending.get(id); if (r) { pending.delete(id); r(); } });
 
   ipcMain.handle("state:get", () => publicState());

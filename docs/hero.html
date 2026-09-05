@@ -1,0 +1,48 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>
+  html,body{margin:0;width:1440px;height:900px;overflow:hidden;font-family:-apple-system,"PingFang SC",sans-serif}
+  body{background:radial-gradient(120% 90% at 20% 10%,#e9e2d4 0%,#cfc4b0 45%,#8f8474 100%)}
+  .menubar{position:absolute;left:0;top:0;right:0;height:28px;background:rgba(255,255,255,.55);backdrop-filter:blur(10px);display:flex;align-items:center;padding:0 16px;font-size:13px;color:#333;gap:18px}
+  .menubar b{font-weight:600}.menubar .right{margin-left:auto;display:flex;gap:14px;align-items:center}
+  .panel{position:absolute;left:120px;top:110px;width:440px;height:660px;border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(30,20,20,.35),0 0 0 1px rgba(0,0,0,.08);background:#F3F1EA}
+  .panel{display:flex;flex-direction:column;font-size:14px;color:#33303A}
+  .ph{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px 20px}
+  .ph .nm{font:600 17px "Songti SC","STSong",serif;display:flex;align-items:center;gap:6px}.ph .nm i{width:8px;height:8px;border-radius:50%;background:#5C857B;display:inline-block}.ph .nm small{font:11px -apple-system;color:#6E6776}
+  .ph .tabs{display:flex;gap:2px;background:rgba(230,225,214,.7);border-radius:999px;padding:3px}.ph .tabs>*{padding:4px 10px;border-radius:999px;font-size:13px;color:#6E6776}.ph .tabs b{background:#fff;color:#33303A;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .msgs{flex:1;padding:6px 14px;display:flex;flex-direction:column;gap:10px}
+  .msgs>div{max-width:86%;padding:8px 12px;border-radius:15px;line-height:1.6}
+  .msgs .me{align-self:flex-end;background:rgba(175,81,100,.12);border-bottom-right-radius:5px}
+  .msgs .pet{align-self:flex-start;background:rgba(255,253,248,.9);border-bottom-left-radius:5px;font:15px/1.7 "Songti SC","STSong",serif;box-shadow:0 1px 0 rgba(60,50,60,.14)}
+  .msgs .sys{align-self:center;font-size:12px;color:#6E6776;padding:2px 8px}
+  .msgs .img{padding:4px;background:rgba(255,253,248,.9);align-self:flex-start}.msgs .img img{display:block;width:220px;border-radius:12px}
+  .composer{display:flex;gap:8px;align-items:center;padding:10px 14px 14px;border-top:1px solid rgba(60,50,60,.14)}
+  .composer .in{flex:1;padding:9px 12px;border-radius:14px;border:1px solid rgba(60,50,60,.14);background:rgba(255,255,255,.55);color:#8a8390}
+  .composer .mic{width:38px;height:38px;border-radius:50%;border:1px solid rgba(60,50,60,.14);background:#fff;display:flex;align-items:center;justify-content:center}
+  .composer .send{background:#AF5164;color:#FFF7F3;border-radius:999px;padding:8px 16px}
+  .pic{position:absolute;left:600px;top:150px;width:520px;border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(30,20,20,.3),0 0 0 1px rgba(0,0,0,.08);background:#F6F2E9}
+  .pic .bar{height:36px;display:flex;align-items:center;padding:0 14px;font-size:13px;color:#6E6776;gap:8px}
+  .pic .bar i{width:11px;height:11px;border-radius:50%;display:inline-block}
+  .pic img{width:100%;display:block}
+  .pet{position:absolute;right:60px;bottom:40px;width:300px;height:340px}
+  .pet img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 18px 26px rgba(40,30,30,.28))}
+  .bubble{position:absolute;right:120px;bottom:330px;max-width:260px;background:rgba(250,247,240,.97);border-radius:15px;padding:9px 13px;font:14px/1.65 "Songti SC","STSong",serif;color:#33303A;box-shadow:0 6px 22px rgba(30,20,30,.18),0 0 0 1px rgba(60,50,60,.08)}
+  .bubble:after{content:"";position:absolute;left:50%;bottom:-6px;width:12px;height:12px;background:rgba(250,247,240,.97);transform:translateX(-50%) rotate(45deg);border-radius:2px}
+  .dock{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);width:520px;height:22px;border-radius:14px;background:rgba(255,255,255,.35);backdrop-filter:blur(10px)}
+</style></head><body>
+  <div class="menubar"><b>毛团</b><span>文件</span><span>编辑</span><span>显示</span><span class="right"><span>🧶</span><span>9月6日 周日 10:24</span></span></div>
+  <div class="panel">
+    <div class="ph"><span class="nm">毛毛 <i></i> <small>· Codex</small></span><span class="tabs"><b>聊天</b><span>喂它</span><span>玩</span><span>设置</span></span></div>
+    <div class="msgs">
+      <div class="me">画一张四格漫画：一只小毛球在窗台上晒太阳，旁边一杯热茶</div>
+      <div class="sys">……在画画了（十几秒）</div>
+      <div class="img"><img src="comic.jpg" alt=""></div>
+      <div class="pet">画好啦。第一格它眯着眼晒太阳，第二格打了个小喷嚏，第三格伸懒腰，第四格把茶端起来了。要不要我也讲个跟它有关的小故事？</div>
+      <div class="me">要，讲给我听</div>
+      <div class="sys">🔔 Codex 这一轮跑完了。</div>
+    </div>
+    <div class="composer"><span class="in">跟它说点什么…（Enter 发送）</span><span class="mic">🎙</span><span class="send">说</span></div>
+  </div>
+  <div class="pic"><div class="bar"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i><span style="margin-left:8px">它画的 · 1 / 1</span></div><img src="comic.jpg" alt=""></div>
+  <div class="bubble">画好啦。一只在窗台上晒太阳的小毛球，旁边一杯热茶。</div>
+  <div class="pet"><img src="pet-fluff.png" alt=""></div>
+  <div class="dock"></div>
+</body></html>
