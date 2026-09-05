@@ -33,7 +33,7 @@
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
-  <img src="docs/comic.png" width="300" alt="四格漫画">
+  <img src="docs/comic.jpg" width="300" alt="四格漫画">
 </p>
 
 ## 下载安装
