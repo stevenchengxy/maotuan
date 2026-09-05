@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>毛团</title>
+<style>
+  html, body { margin: 0; height: 100%; background: transparent; overflow: hidden; -webkit-user-select: none; user-select: none; }
+  body { font-family: "Songti SC", "STSong", "Noto Serif SC", -apple-system, "PingFang SC", serif; }
+  #stage { position: absolute; left: 50%; bottom: 0; transform: translateX(-50%); width: 100%; height: 100%; display: block; }
+  #fx { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  #hud { position: absolute; left: 12px; top: 10px; font: 600 13px/1.4 -apple-system, "PingFang SC", sans-serif; color: #33303A; text-shadow: 0 1px 0 rgba(255,255,255,.8); pointer-events: none; display: none; }
+  @media (prefers-color-scheme: dark) { #hud { color: #EDE7DC; text-shadow: 0 1px 0 rgba(0,0,0,.6); } }
+  #bubble {
+    position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
+    max-width: 264px; padding: 9px 13px; border-radius: 15px;
+    background: rgba(250, 247, 240, 0.96); color: #33303A;
+    font-size: 14px; line-height: 1.65; letter-spacing: .01em;
+    box-shadow: 0 6px 22px rgba(30, 20, 30, 0.18), 0 0 0 1px rgba(60, 50, 60, 0.08);
+    opacity: 0; transition: opacity .25s ease, transform .25s ease; pointer-events: auto; cursor: pointer;
+    text-wrap: pretty; word-break: break-word;
+    max-height: 126px; overflow: hidden;
+  }
+  #bubble.long::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(rgba(250,247,240,0), rgba(250,247,240,.98)); border-radius: 0 0 15px 15px; }
+  #bubble.long .more { position: absolute; right: 10px; bottom: 5px; font-size: 11px; color: #AF5164; }
+  @media (prefers-color-scheme: dark) { #bubble.long::before { background: linear-gradient(rgba(44,38,50,0), rgba(44,38,50,.98)); } #bubble.long .more { color: #D8808F; } }
+  #bubble::after {
+    content: ""; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px;
+    background: rgba(250, 247, 240, 0.96); transform: translateX(-50%) rotate(45deg); border-radius: 2px;
+    box-shadow: 2px 2px 3px rgba(30, 20, 30, 0.06);
+  }
+  #bubble.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  #bubble.hide { transform: translateX(-50%) translateY(4px); }
+  @media (prefers-color-scheme: dark) {
+    #bubble { background: rgba(44, 38, 50, 0.96); color: #EDE7DC; box-shadow: 0 8px 26px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08); }
+    #bubble::after { background: rgba(44, 38, 50, 0.96); }
+  }
+</style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+  <canvas id="fx"></canvas>
+  <div id="hud"></div>
+  <div id="bubble"></div>
+  <script type="module" src="./pet.js"></script>
+</body>
+</html>

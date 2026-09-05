@@ -1,0 +1,635 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>毛团</title>
+<style>
+  :root { --ink:#33303A; --ink-soft:#6E6776; --line:rgba(60,50,60,.14); --surface:rgba(255,253,248,.72); --surface-2:rgba(230,225,214,.7); --field:rgba(255,255,255,.55); --berry:#AF5164; --on-berry:#FFF7F3; --sage:#5C857B; --mark:#F0DCA8; --user:rgba(175,81,100,.12); --bg:#F3F1EA; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#EDE7DC; --ink-soft:#A69DAF; --line:rgba(255,255,255,.10); --surface:rgba(48,42,56,.55); --surface-2:rgba(70,62,80,.6); --field:rgba(0,0,0,.25); --berry:#D8808F; --on-berry:#2A1A1F; --sage:#84AEA2; --mark:#57462A; --user:rgba(216,128,143,.16); --bg:#221D2A; } }
+  * { box-sizing: border-box; }
+  html, body { margin:0; height:100%; background:transparent; color:var(--ink); font:14px/1.7 -apple-system,"PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif; -webkit-font-smoothing:antialiased; }
+  body.solid { background: var(--bg); }
+  body { display:flex; flex-direction:column; overflow:hidden; }
+  button, input, select, textarea { font:inherit; color:inherit; }
+  [hidden] { display:none !important; }
+  .bar { -webkit-app-region:drag; padding:12px 12px 8px 76px; display:flex; align-items:center; justify-content:space-between; gap:8px; white-space:nowrap; }
+  body.solid .bar { padding-left:14px; }
+  .bar .name { font-family:"Songti SC","STSong","SimSun",serif; font-size:17px; font-weight:600; display:flex; align-items:center; gap:6px; min-width:0; flex:1; overflow:hidden; }
+  .bar .name #hname { overflow:hidden; text-overflow:ellipsis; }
+  .bar .meta { font-size:11px; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--sage); display:inline-block; }
+  .dot.off { background:#C9A25C; }
+  .tabs { -webkit-app-region:no-drag; display:flex; gap:1px; background:var(--surface-2); border-radius:999px; padding:3px; flex:none; }
+  .tabs button { border:0; background:transparent; border-radius:999px; padding:4px 9px; font-size:13px; color:var(--ink-soft); cursor:pointer; white-space:nowrap; }
+  .tabs button.on { background:var(--surface); color:var(--ink); box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  main { flex:1; min-height:0; display:flex; flex-direction:column; }
+  section { flex:1; min-height:0; display:flex; flex-direction:column; }
+  #msgs { flex:1; overflow-y:auto; padding:6px 14px 10px; display:flex; flex-direction:column; gap:10px; }
+  .msg { max-width:88%; padding:8px 12px; border-radius:15px; line-height:1.6; white-space:pre-wrap; word-break:break-word; font-size:14px; position:relative; }
+  .msg a { color:var(--sage); text-decoration:underline; cursor:pointer; }
+  .msg.collapsed { max-height:220px; overflow:hidden; }
+  .msg.collapsed::after { content:""; position:absolute; left:0; right:0; bottom:0; height:40px; background:linear-gradient(rgba(255,255,255,0), var(--surface)); }
+  .msg .expand { display:block; margin-top:6px; font-size:12px; color:var(--berry); cursor:pointer; position:relative; z-index:1; }
+  .msg.sys .n { opacity:.7; }
+  .iconbtn { -webkit-app-region:no-drag; border:1px solid var(--line); background:var(--surface); border-radius:999px; width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; font-size:14px; }
+  .iconbtn.on { background:var(--user); border-color:var(--berry); }
+  #mic { width:38px; height:38px; border-radius:50%; border:1px solid var(--line); background:var(--surface); cursor:pointer; font-size:16px; display:flex; align-items:center; justify-content:center; }
+  #mic.rec { background:var(--berry); color:var(--on-berry); border-color:var(--berry); animation:pulse 1s infinite; }
+  #mic.busy { opacity:.6; }
+  @keyframes pulse { 0%,100% { box-shadow:0 0 0 0 rgba(175,81,100,.35) } 50% { box-shadow:0 0 0 8px rgba(175,81,100,0) } }
+  .game-canvas { width:100%; border-radius:14px; background:var(--field); display:block; }
+  .rps { display:flex; gap:10px; justify-content:center; }
+  .rps button { font-size:30px; width:64px; height:64px; border-radius:16px; border:1px solid var(--line); background:var(--surface); cursor:pointer; }
+  .rps button:hover { background:var(--surface-2); }
+  .score { font-size:22px; font-family:"Songti SC","STSong",serif; text-align:center; }
+  .wiz { display:flex; flex-direction:column; gap:12px; }
+  .wiz h2 { margin:0; font-family:"Songti SC","STSong",serif; font-size:19px; font-weight:600; }
+  .wiz .steps { display:flex; gap:6px; }
+  .wiz .steps i { flex:1; height:4px; border-radius:99px; background:var(--surface-2); }
+  .wiz .steps i.on { background:var(--berry); }
+  .book-btn { display:flex; gap:8px; align-items:center; }
+  .msg.me { align-self:flex-end; background:var(--user); border-bottom-right-radius:5px; }
+  .msg.pet { align-self:flex-start; background:var(--surface); border-bottom-left-radius:5px; font-family:"Songti SC","STSong","SimSun",serif; font-size:15px; box-shadow:0 1px 0 var(--line); }
+  .msg.sys { align-self:center; font-size:12px; color:var(--ink-soft); background:transparent; padding:2px 8px; }
+  .msg.err { align-self:flex-start; font-size:13px; color:var(--berry); background:transparent; }
+  .msg .caret { display:inline-block; width:.5em; color:var(--berry); animation:blip 1s steps(2) infinite; }
+  @keyframes blip { 0%,50% { opacity:1 } 51%,100% { opacity:0 } }
+  #composer { display:flex; gap:8px; padding:10px 14px 14px; align-items:flex-end; border-top:1px solid var(--line); }
+  #input { flex:1; resize:none; min-height:38px; max-height:120px; padding:8px 12px; border-radius:14px; border:1px solid var(--line); background:var(--field); outline:none; line-height:1.6; }
+  #input:focus { border-color:var(--sage); }
+  .btn { border:1px solid var(--line); background:var(--surface); border-radius:999px; padding:7px 14px; cursor:pointer; font-size:13px; white-space:nowrap; }
+  .btn:hover { background:var(--surface-2); }
+  .btn.primary { background:var(--berry); border-color:var(--berry); color:var(--on-berry); }
+  .btn.small { padding:4px 10px; font-size:12px; }
+  .btn.danger { color:var(--berry); }
+  .btn[disabled] { opacity:.45; cursor:default; }
+  .pad { flex:1; overflow-y:auto; padding:4px 14px 16px; display:flex; flex-direction:column; gap:12px; }
+  .msg.pet .cap { font-size:11px; color:var(--ink-soft); margin-top:4px; display:block; }
+  .msg.img { padding:4px; background:var(--surface); align-self:flex-start; }
+  .msg.img img { display:block; max-width:260px; max-height:220px; border-radius:12px; cursor:pointer; }
+  #hush { display:none; }
+  #hush.on { display:inline-flex; }
+  .card { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:12px 14px; display:flex; flex-direction:column; gap:9px; }
+  .card h3 { margin:0; font-size:12px; letter-spacing:.12em; color:var(--ink-soft); font-weight:500; }
+  .drop { border:1.5px dashed var(--line); border-radius:14px; padding:18px 12px; text-align:center; color:var(--ink-soft); font-size:13px; cursor:pointer; }
+  .drop.over { border-color:var(--berry); color:var(--ink); background:var(--surface-2); }
+  .drop b { color:var(--ink); font-weight:500; }
+  textarea.big { width:100%; min-height:80px; resize:vertical; padding:9px 12px; border-radius:12px; border:1px solid var(--line); background:var(--field); outline:none; }
+  textarea.small { width:100%; min-height:56px; resize:vertical; padding:7px 10px; border-radius:10px; border:1px solid var(--line); background:var(--field); outline:none; font-family:ui-monospace,Menlo,monospace; font-size:12px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .row.end { justify-content:flex-end; }
+  .grow { flex:1; min-width:120px; }
+  .doc-title { font-family:"Songti SC","STSong","SimSun",serif; font-size:16px; font-weight:600; line-height:1.5; }
+  .meta { font-size:12px; color:var(--ink-soft); }
+  .tags { display:flex; gap:6px; flex-wrap:wrap; }
+  .tag { font-size:12px; padding:3px 9px; border-radius:999px; background:var(--surface-2); color:var(--ink-soft); }
+  .bar2 { height:5px; background:var(--surface-2); border-radius:99px; overflow:hidden; }
+  .bar2 > i { display:block; height:100%; width:0; background:var(--sage); border-radius:99px; transition:width .3s; }
+  .now { font-family:"Songti SC","STSong","SimSun",serif; font-size:14px; color:var(--ink); background:linear-gradient(transparent 64%,var(--mark) 64%); display:inline; }
+  label.f { display:flex; flex-direction:column; gap:3px; font-size:12px; color:var(--ink-soft); }
+  label.f > input, label.f > select, input.plain { padding:7px 10px; border-radius:10px; border:1px solid var(--line); background:var(--field); outline:none; color:var(--ink); font-size:13px; }
+  label.f > input:focus, label.f > select:focus, input.plain:focus { border-color:var(--sage); }
+  label.t { display:flex; align-items:center; justify-content:space-between; gap:10px; font-size:13px; cursor:pointer; }
+  label.t input { width:16px; height:16px; accent-color:var(--berry); }
+  .hint { font-size:12px; color:var(--ink-soft); line-height:1.6; }
+  .hint a, a.lnk { color:var(--sage); cursor:pointer; text-decoration:underline; }
+  .ok { color:var(--sage); } .bad { color:var(--berry); }
+  code { font-family:ui-monospace,Menlo,monospace; font-size:12px; background:var(--surface-2); padding:1px 5px; border-radius:5px; }
+  ol.steps { margin:0; padding-left:18px; font-size:12px; color:var(--ink-soft); line-height:1.7; }
+  .skins { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .skin { border:1.5px solid var(--line); border-radius:12px; padding:10px 8px; text-align:center; cursor:pointer; font-size:13px; }
+  .skin.on { border-color:var(--berry); background:var(--user); }
+  .skin small { display:block; font-size:11px; color:var(--ink-soft); line-height:1.4; margin-top:2px; }
+  .vlist { max-height:240px; overflow-y:auto; border:1px solid var(--line); border-radius:12px; background:var(--field); }
+  .vrow { display:flex; align-items:center; gap:6px; padding:6px 8px; border-bottom:1px solid var(--line); font-size:13px; }
+  .vrow:last-child { border-bottom:0; }
+  .vrow.on { background:var(--user); }
+  .vrow .vn { flex:1; min-width:0; }
+  .vrow .vn b { font-weight:500; }
+  .vrow .vn small { display:block; color:var(--ink-soft); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .vrow .vg { font-size:10px; color:var(--ink-soft); border:1px solid var(--line); border-radius:6px; padding:0 4px; }
+  .mcp-item { display:flex; align-items:center; gap:8px; padding:8px 10px; border:1px solid var(--line); border-radius:12px; }
+  .mcp-item .nm { flex:1; min-width:0; }
+  .mcp-item .nm b { font-weight:500; }
+  .mcp-item .st { font-size:11px; display:block; color:var(--ink-soft); }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="name"><span id="hname">毛毛</span><span class="dot" id="dot" title="声音"></span><span class="meta" id="brainTag"></span><button class="iconbtn" id="muteBtn" title="静音 / 出声">🔈</button><button class="iconbtn" id="hush" title="别说了（Esc）">✋</button></div>
+  <nav class="tabs"><button data-tab="chat" class="on">聊天</button><button data-tab="feed">喂它</button><button data-tab="play">玩</button><button data-tab="settings">设置</button></nav>
+</header>
+<main>
+  <section id="tab-chat">
+    <div id="msgs"></div>
+    <form id="composer">
+      <textarea id="input" rows="1" placeholder="跟它说点什么…（Enter 发送）"></textarea>
+      <button id="mic" type="button" title="按住说话，松开发送">🎙</button>
+      <button class="btn primary" id="send" type="submit">说</button>
+      <button class="btn" id="stop" type="button" hidden>停</button>
+    </form>
+  </section>
+  <section id="tab-feed" hidden>
+    <div class="pad">
+      <div class="card">
+        <h3>给它读点东西</h3>
+        <div class="drop" id="drop">把文件拖进来，或者 <b>点这里挑一个</b><br><span style="font-size:12px">txt · md · pdf · srt · 代码，都能啃</span></div>
+        <textarea class="big" id="feedText" placeholder="……或者直接把字粘在这儿。"></textarea>
+        <div class="row end"><button class="btn primary" id="feedGo">给它</button></div>
+      </div>
+      <div class="card" id="docCard" hidden>
+        <h3>它吃下的</h3>
+        <div class="doc-title" id="docTitle"></div>
+        <div class="meta" id="docMeta"></div>
+        <div id="docLine" class="hint"></div>
+        <div class="tags" id="docTags"></div>
+        <div class="row">
+          <button class="btn primary" id="intro">讲给我听</button>
+          <button class="btn" id="readStart">念给我听</button>
+          <button class="btn" id="readPause" hidden>暂停</button>
+          <button class="btn" id="readStop" hidden>停下</button>
+        </div>
+        <div id="readBox" hidden><div class="meta" id="readMeta"></div><div class="bar2"><i id="readBar"></i></div><div id="readNow" class="now" style="margin-top:6px"></div></div>
+        <div class="row"><input class="grow plain" id="askQ" placeholder="问它一句，比如「主角是谁」"><button class="btn" id="askGo">问</button></div>
+        <div id="askA" class="hint"></div>
+      </div>
+      <div class="card" id="bookCard" hidden>
+        <h3>做成绘本，讲给孩子听</h3>
+        <div class="hint">把这份文字改写成给小朋友听的口语故事，分成几页，每页配一张插画（插画走 MiniMax 的图片模型，用的是你的 MiniMax key，按张计费）。做好后会开一个绘本窗，毛团一页一页讲。</div>
+        <div class="row"><span class="hint">页数</span><select id="bookPages" class="plain"><option value="6">6</option><option value="8" selected>8</option><option value="10">10</option></select><button class="btn primary" id="bookMake">开始做绘本</button><button class="btn" id="bookOpen" hidden>打开上一本</button></div>
+        <div id="bookStatus" class="hint"></div>
+        <div class="bar2" id="bookBarWrap" hidden><i id="bookBar"></i></div>
+      </div>
+    </div>
+  </section>
+  <section id="tab-play" hidden>
+    <div class="pad">
+      <div class="hint">游戏都在桌面上、在它身上演。这里只是遥控器。</div>
+      <div class="card">
+        <h3>猜拳</h3>
+        <div class="score" id="rpsScore">你 0 : 0 它</div>
+        <div class="rps"><button data-m="0">✊</button><button data-m="1">✋</button><button data-m="2">✌️</button></div>
+        <div class="hint" id="rpsLine" style="text-align:center">出一个，看它在桌面上出什么。</div>
+      </div>
+      <div class="card">
+        <h3>比大小（骰子）</h3>
+        <div class="row"><button class="btn primary" id="diceGo">摇！</button><span class="hint" id="diceLine">它把骰子甩出去，点数大的赢。</span></div>
+      </div>
+      <div class="card">
+        <h3>接豆子</h3>
+        <div class="row"><button class="btn primary" id="catchGo">在桌面上开一局</button><button class="btn" id="catchStop" hidden>不玩了</button><span class="hint" id="catchInfo">豆子从它头顶掉下来，鼠标左右挪它手里的小篮子，30 秒，漏三个结束。</span></div>
+      </div>
+      <div class="card">
+        <h3>让它画一张</h3>
+        <div class="row"><input class="grow plain" id="drawPrompt" placeholder="画什么？比如：白雪公主在森林小屋前，七个小矮人举着灯"><select class="plain" id="drawStyle"><option>插画</option><option>四格漫画</option><option>水彩</option><option>像素</option><option>写实</option></select><button class="btn primary" id="drawGo">画</button></div>
+        <div class="hint" id="drawStatus">聊天里直接说"画一张……"也行，它会用同一个画笔。画好的都在画框窗口里，<a class="lnk" id="drawOpen">打开画框</a>。</div>
+      </div>
+      <div class="card">
+        <h3>让它唱首歌</h3>
+        <div class="hint">它自己写词（脑子）。MiniMax 的音乐接口如果你的账号能用就真唱；用不了（新账号已停开）就用哼唱模式：桌面上起一段小旋律，它用自己的声音一句一句唱。只会唱自己写的歌，别人的歌它不会。</div>
+        <div class="row"><input class="grow plain" id="singTheme" placeholder="唱什么？比如：今天的好心情、下雨天、我的猫"><button class="btn primary" id="singGo">唱</button></div>
+        <div class="hint" id="singStatus"></div>
+        <pre id="singLyrics" class="hint" style="white-space:pre-wrap;margin:0;font-family:'Songti SC','STSong',serif;font-size:14px"></pre>
+      </div>
+    </div>
+  </section>
+  <section id="tab-wizard" hidden><div class="pad" id="wizard"></div></section>
+  <section id="tab-settings" hidden><div class="pad" id="settings"></div></section>
+</main>
+
+<script>
+// 在普通浏览器里打开也能看（演示数据），方便调界面
+const api = window.mt || (() => {
+  const fake = { name: "毛毛", born: Date.now(), pets: 3, fed: 0, platform: "darwin", doc: null, brain: "codex", petHidden: false, loginItem: false, dataDir: "~/demo", uvx: "", agent: null,
+    settings: { brain: "codex", skin: "fluff", hotkey: "Alt+Shift+M", mcp: [], voice: "minimax", minimaxHost: "https://api.minimaxi.com", minimaxModel: "speech-2.8-hd", readModel: "speech-2.8-turbo", voiceId: "Chinese (Mandarin)_Cute_Spirit", speed: 1, pitch: 0, readWith: "minimax", muted: false, codexEffort: "low" },
+    secrets: { minimaxKey: true }, hints: { minimaxKey: "sk-api…demo" }, voiceProvider: "minimax", readProvider: "minimax", voiceError: "",
+    mcp: [], presets: [], skins: [{ id: "fluff", name: "毛团", desc: "羊毛毡" }, { id: "blob", name: "像素团", desc: "像素" }], hooks: { claude: false, codex: false, port: 47831, claudeInstalled: true, codexInstalled: true } };
+  const voices = [["Chinese (Mandarin)_Cute_Spirit", "憨憨萌兽", "一位呆萌可爱的少年男声，适合憨厚的萌兽角色。"], ["lovely_girl", "萌萌女童", ""], ["cute_boy", "可爱男童", ""], ["Chinese (Mandarin)_Warm_Girl", "温暖少女", "一位温柔温暖的少年女声，标准普通话。"], ["qiaopi_mengmei", "俏皮萌妹", ""], ["female-tianmei", "甜美女性音色", ""], ["male-qn-qingse", "青涩青年音色", ""], ["English_Graceful_Lady", "Graceful Lady", "A graceful English lady"], ["Japanese_Whisper_Belle", "Whisper Belle", "Japanese"]].map(([id, name, desc]) => ({ id, name, desc, kind: "system" }));
+  return { invoke: async (ch, d) => ch === "state:get" ? fake : ch === "voice:listMinimax" ? { voices } : ch === "voice:listSay" ? { voices: [] } : ch === "settings:set" ? (Object.assign(fake.settings, d), fake) : ch === "voice:audition" ? { error: "" } : {}, send() {}, on() {}, pathFor: () => "" };
+})();
+const $ = id => document.getElementById(id);
+let state = null;
+if (!/Mac/.test(navigator.platform)) document.body.classList.add("solid");
+
+function showTab(t) {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+  for (const s of ["chat", "feed", "play", "wizard", "settings"]) $("tab-" + s).hidden = s !== t;
+  if (t === "chat") setTimeout(() => $("input").focus(), 50);
+  if (t === "settings") renderSettings();
+  if (t === "wizard") renderWizard();
+
+}
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => showTab(b.dataset.tab)));
+api.on("panel:tab", ({ tab }) => showTab(tab));
+
+async function refresh() { state = await api.invoke("state:get"); applyState(); }
+api.on("state", s => { state = s; applyState(); });
+function applyState() {
+  if (!state) return;
+  $("hname").textContent = state.name;
+  $("dot").className = "dot" + (state.voiceProvider === "minimax" ? "" : " off");
+  $("dot").title = state.voiceProvider === "minimax" ? "声音：MiniMax" : "声音：本地（去设置里填 MiniMax key 会好听很多）";
+  $("brainTag").textContent = state.brain === "codex" ? "· Codex" : "· Claude";
+  $("muteBtn").textContent = state.settings.muted ? "🔇" : "🔈"; $("muteBtn").classList.toggle("on", !!state.settings.muted);
+  renderDoc();
+  if (!$("tab-settings").hidden) renderSettings();
+}
+
+/* ---------- 聊天 ---------- */
+const msgs = $("msgs"), input = $("input");
+let streaming = null;
+const esc = t => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+// 把它说的话渲染出来：链接可点，去掉 markdown 的星号井号，太长就折叠
+function renderInto(d, text) {
+  let h = esc(text).replace(/\*\*(.+?)\*\*/g, "$1").replace(/^#{1,6}\s+/gm, "").replace(/^\s*[-*]\s+/gm, "· ");
+  h = h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a data-url="$2">$1</a>');
+  h = h.replace(/(^|[^"=>])(https?:\/\/[^\s<)]+)/g, '$1<a data-url="$2">$2</a>');
+  d.innerHTML = h;
+  d.querySelectorAll("a[data-url]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); api.invoke("app:openUrl", { url: a.dataset.url }); }));
+  if (text.length > 480) { d.classList.add("collapsed"); const x = document.createElement("span"); x.className = "expand"; x.textContent = "展开全文"; x.addEventListener("click", () => { d.classList.remove("collapsed"); x.remove(); }); d.append(x); }
+}
+function addMsg(cls, text) {
+  // 连续两条一样的系统提示合并成一条
+  if (cls === "sys") { const last = msgs.lastElementChild; if (last && last.classList.contains("sys") && last.dataset.t === text) { last.dataset.n = (Number(last.dataset.n || 1) + 1); last.innerHTML = esc(text) + ' <span class="n">×' + last.dataset.n + "</span>"; return last; } }
+  const d = document.createElement("div"); d.className = "msg " + cls; d.textContent = text; if (cls === "sys") d.dataset.t = text;
+  msgs.append(d); msgs.scrollTop = msgs.scrollHeight; return d;
+}
+$("muteBtn").addEventListener("click", () => set({ muted: !state.settings.muted }));
+$("hush").addEventListener("click", () => api.invoke("voice:stopNow"));
+api.on("pet:talking", ({ talking }) => $("hush").classList.toggle("on", !!talking));
+window.addEventListener("keydown", e => { if (e.key === "Escape") api.invoke("voice:stopNow"); });
+api.on("chat:image", ({ file, prompt }) => { const d = document.createElement("div"); d.className = "msg img"; const im = document.createElement("img"); im.src = "file://" + encodeURI(file).replace(/#/g, "%23"); im.title = prompt || ""; im.addEventListener("click", () => api.invoke("pictures:open", {})); d.append(im); msgs.append(d); msgs.scrollTop = msgs.scrollHeight; });
+const cleanTag = t => String(t || "").replace(/[【\[](开心|高兴|难过|伤心|生气|害怕|惊讶|平静|温柔)[】\]]\s*/g, "");
+$("composer").addEventListener("submit", e => { e.preventDefault(); sendChat(); });
+input.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); sendChat(); } });
+input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = Math.min(120, input.scrollHeight) + "px"; });
+async function sendChat() { const t = input.value.trim(); if (!t) return; input.value = ""; input.style.height = "auto"; addMsg("me", t); await api.invoke("chat:send", { text: t }); }
+$("stop").addEventListener("click", () => api.invoke("chat:stop"));
+
+/* ---------- 按住说话 ---------- */
+const mic = $("mic");
+let rec = null, recStream = null, chunks = [], recBusy = false, recStartAt = 0;
+async function startRec() {
+  if (rec || recBusy) return;
+  try { recStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+  catch (e) { addMsg("err", "用不了麦克风：" + (e.message || e) + "。系统设置里给毛团麦克风权限。"); return; }
+  chunks = []; rec = new MediaRecorder(recStream); rec.ondataavailable = e => chunks.push(e.data); rec.start(); recStartAt = Date.now();
+  mic.classList.add("rec"); mic.textContent = "●";
+}
+async function stopRec() {
+  if (!rec) return;
+  const r = rec; rec = null;
+  await new Promise(res => { r.onstop = res; r.stop(); });
+  recStream.getTracks().forEach(t => t.stop());
+  mic.classList.remove("rec"); mic.textContent = "🎙";
+  if (Date.now() - recStartAt < 500) return;
+  recBusy = true; mic.classList.add("busy"); const note = addMsg("sys", "在听……");
+  try {
+    const blob = new Blob(chunks, { type: r.mimeType || "audio/webm" });
+    const ac = new AudioContext(); const buf = await ac.decodeAudioData(await blob.arrayBuffer()); ac.close();
+    const off = new OfflineAudioContext(1, Math.ceil(buf.duration * 16000), 16000);
+    const src = off.createBufferSource(); src.buffer = buf; src.connect(off.destination); src.start();
+    const out = await off.startRendering(); const pcm = out.getChannelData(0);
+    const res = await api.invoke("stt:transcribe", { pcm });
+    note.remove();
+    if (res.error) { addMsg("err", "没听清：" + res.error); }
+    else if (res.text && res.text.trim()) { input.value = res.text.trim(); sendChat(); }
+    else addMsg("sys", "没听到什么。");
+  } catch (e) { note.remove(); addMsg("err", "识别出错：" + (e.message || e)); }
+  recBusy = false; mic.classList.remove("busy");
+}
+mic.addEventListener("pointerdown", e => { e.preventDefault(); startRec(); });
+mic.addEventListener("pointerup", () => stopRec());
+mic.addEventListener("pointerleave", () => { if (rec) stopRec(); });
+api.on("stt:progress", ({ text }) => { const last = msgs.lastElementChild; if (last && last.classList.contains("sys")) last.textContent = text; else addMsg("sys", text); });
+api.on("panel:mic", () => { if (rec) stopRec(); else startRec(); });
+api.on("chat:start", () => { $("stop").hidden = false; $("send").disabled = true; streaming = addMsg("pet", ""); streaming.dataset.raw = ""; const c = document.createElement("span"); c.className = "caret"; c.textContent = "▍"; streaming.append(c); });
+api.on("chat:delta", ({ text }) => { if (!streaming) return; streaming.dataset.raw += text; if (streaming.firstChild && streaming.firstChild.nodeType === 3) streaming.firstChild.nodeValue = cleanTag(streaming.dataset.raw); else streaming.prepend(document.createTextNode(cleanTag(streaming.dataset.raw))); msgs.scrollTop = msgs.scrollHeight; });
+api.on("chat:tool", ({ name }) => addMsg("sys", toolLabel(name)));
+api.on("chat:done", ({ text }) => { if (streaming) { renderInto(streaming, cleanTag(text || streaming.dataset.raw)); streaming = null; msgs.scrollTop = msgs.scrollHeight; } $("stop").hidden = true; $("send").disabled = false; });
+api.on("chat:error", ({ text }) => { if (streaming) { const raw = cleanTag(streaming.dataset.raw); if (raw.trim()) streaming.textContent = raw; else streaming.remove(); streaming = null; } addMsg("err", "脑子没接上：" + text); $("stop").hidden = true; $("send").disabled = false; });
+api.on("agent:event", ({ source, text }) => addMsg("sys", "🔔 " + text));
+function toolLabel(n) {
+  if (/^mcp__maotuan__music/.test(n)) return "……去碰音乐 App 了";
+  if (/^mcp__maotuan__remember/.test(n)) return "……记到小本子上了";
+  if (/^mcp__maotuan__draw_picture/.test(n) || n === "draw") return "……在画画了（十几秒）";
+  if (/^mcp__maotuan__pet_sing/.test(n)) return "……去准备唱歌了";
+  if (/^mcp__google__/.test(n)) return "……去看 Google 了";
+  if (/^mcp__netease__/.test(n)) return "……去碰网易云了";
+  if (/^mcp__feishu__/.test(n)) return "……去翻飞书了";
+  if (/^mcp__slack__/.test(n)) return "……去看 Slack 了";
+  if (n === "WebSearch") return "……去网上翻了翻";
+  const m = n.match(/^mcp__([^_]+)__/); return m ? "……去用 " + m[1] + " 了" : "……在用 " + n;
+}
+
+/* ---------- 喂它 ---------- */
+const drop = $("drop");
+drop.addEventListener("click", async () => { busyFeed(true); try { await api.invoke("feed:pick"); } catch (e) { feedErr(e); } busyFeed(false); });
+["dragenter", "dragover"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", async e => { const f = e.dataTransfer.files[0]; if (!f) return; const p = api.pathFor(f); if (!p) return; busyFeed(true); try { await api.invoke("feed:file", { path: p }); } catch (err) { feedErr(err); } busyFeed(false); });
+$("feedGo").addEventListener("click", async () => { const t = $("feedText").value.trim(); if (!t) return; busyFeed(true); try { await api.invoke("feed:text", { text: t }); $("feedText").value = ""; } catch (e) { feedErr(e); } busyFeed(false); });
+function busyFeed(b) { drop.innerHTML = b ? "在啃……" : '把文件拖进来，或者 <b>点这里挑一个</b><br><span style="font-size:12px">txt · md · pdf · srt · 代码，都能啃</span>'; }
+function feedErr(e) { const m = String(e && e.message || e); alert(/too-short/.test(m) ? "这也太少了，它一口就没了。" : /unsupported:/.test(m) ? "这种格式它啃不动。txt、md、pdf 可以，或者把文字复制给它。" : "没吃进去：" + m); }
+function renderDoc() {
+  const d = state && state.doc; $("docCard").hidden = !d; if (!d) return;
+  $("docTitle").textContent = d.title || "一段文字";
+  $("docMeta").textContent = (d.kind ? d.kind + " · " : "") + (d.chars || 0).toLocaleString() + " 字" + (d.hasText ? "" : " · 只记得摘要");
+  $("docLine").textContent = d.oneLine || "";
+  $("docTags").innerHTML = ""; (d.points || []).forEach(p => { const s = document.createElement("span"); s.className = "tag"; s.textContent = p; $("docTags").append(s); });
+  $("intro").hidden = !d.intro; $("readStart").textContent = d.pos > 0 ? "接着念" : "念给我听"; $("readStart").hidden = !d.hasText;
+  $("bookCard").hidden = !d.hasText; $("bookOpen").hidden = !state.book;
+}
+$("intro").addEventListener("click", () => api.invoke("say:intro"));
+$("bookMake").addEventListener("click", async () => {
+  $("bookMake").disabled = true; $("bookBarWrap").hidden = false; $("bookBar").style.width = "0%"; $("bookStatus").textContent = "先请脑子把故事改写成几页……";
+  try { const r = await api.invoke("book:make", { pages: Number($("bookPages").value) }); if (r.error) $("bookStatus").innerHTML = '<span class="bad">' + r.error + "</span>"; else { $("bookStatus").textContent = "做好了：" + r.title + "，" + r.pages + " 页。"; $("bookOpen").hidden = false; await api.invoke("book:open", {}); } }
+  catch (e) { $("bookStatus").innerHTML = '<span class="bad">' + (e.message || e) + "</span>"; }
+  $("bookMake").disabled = false;
+});
+$("bookOpen").addEventListener("click", () => api.invoke("book:open", {}));
+api.on("book:progress", ({ done, total, text }) => { $("bookBarWrap").hidden = false; $("bookBar").style.width = Math.round(done / total * 100) + "%"; $("bookStatus").textContent = text; });
+$("readStart").addEventListener("click", async () => { await api.invoke("read:start", { from: state.doc.pos || 0 }); readingUI(true); });
+let paused = false;
+$("readPause").addEventListener("click", async () => { paused = !paused; await api.invoke(paused ? "read:pause" : "read:resume"); $("readPause").textContent = paused ? "继续" : "暂停"; });
+$("readStop").addEventListener("click", async () => { await api.invoke("read:stop"); readingUI(false); });
+function readingUI(on) { $("readPause").hidden = !on; $("readStop").hidden = !on; $("readBox").hidden = !on; $("readStart").hidden = on; paused = false; $("readPause").textContent = "暂停"; }
+api.on("read:progress", ({ index, total, text }) => { readingUI(true); const pct = total ? Math.round(index / total * 100) : 0; $("readBar").style.width = pct + "%"; $("readMeta").textContent = `第 ${index + 1} 句，共 ${total} 句 · ${pct}%`; $("readNow").textContent = text; });
+api.on("read:done", () => { readingUI(false); refresh(); });
+$("askGo").addEventListener("click", ask);
+$("askQ").addEventListener("keydown", e => { if (e.key === "Enter" && !e.isComposing) ask(); });
+async function ask() { const q = $("askQ").value.trim(); if (!q) return; $("askQ").value = ""; $("askA").textContent = "嗯……让我想想。"; const r = await api.invoke("feed:ask", { question: q }); $("askA").textContent = r.answer; }
+
+/* ---------- 玩：遥控器 ---------- */
+let rps = { me: 0, it: 0 };
+try { rps = JSON.parse(localStorage.getItem("rps") || "{}"); rps.me = rps.me || 0; rps.it = rps.it || 0; } catch {}
+$("rpsScore").textContent = `你 ${rps.me} : ${rps.it} 它`;
+let rpsBusy = false;
+document.querySelectorAll(".rps button").forEach(b => b.addEventListener("click", async () => {
+  if (rpsBusy) return; rpsBusy = true; $("rpsLine").textContent = "看桌面上……";
+  await api.invoke("game:rps", { me: Number(b.dataset.m) });
+}));
+$("diceGo").addEventListener("click", async () => { $("diceLine").textContent = "看桌面上……"; await api.invoke("game:dice"); });
+$("catchGo").addEventListener("click", async () => { $("catchInfo").textContent = "在桌面上玩着呢……"; $("catchStop").hidden = false; await api.invoke("game:catch"); });
+$("catchStop").addEventListener("click", async () => { await api.invoke("game:stop"); $("catchStop").hidden = true; $("catchInfo").textContent = "下次再玩。"; });
+api.on("game:result", d => {
+  if (d.game === "rps") { rpsBusy = false; if (d.result === "win") rps.me++; else if (d.result === "lose") rps.it++; localStorage.setItem("rps", JSON.stringify(rps)); $("rpsScore").textContent = `你 ${rps.me} : ${rps.it} 它`; $("rpsLine").textContent = d.result === "win" ? "你赢了！" : d.result === "lose" ? "它赢了。" : "平了。"; }
+  else if (d.game === "dice") $("diceLine").textContent = `你 ${d.me} 点，它 ${d.it} 点，${d.result === "win" ? "你赢了" : d.result === "lose" ? "它赢了" : "平了"}。`;
+  else if (d.game === "catch") { $("catchStop").hidden = true; $("catchInfo").textContent = `这局接到 ${d.score} 个。`; }
+});
+$("drawGo").addEventListener("click", async () => { const p = $("drawPrompt").value.trim(); if (!p) return; $("drawGo").disabled = true; $("drawStatus").textContent = "在画……（十几秒）"; const r = await api.invoke("draw:start", { prompt: p, style: $("drawStyle").value }); $("drawStatus").textContent = r.ok ? "画好了，看聊天窗和画框。" : "没画成：" + r.error; $("drawGo").disabled = false; });
+$("drawOpen").addEventListener("click", () => api.invoke("pictures:open", {}));
+$("singGo").addEventListener("click", async () => { $("singGo").disabled = true; $("singLyrics").textContent = ""; $("singStatus").textContent = "在写歌词……"; const r = await api.invoke("sing:start", { theme: $("singTheme").value }); if (r.error) $("singStatus").innerHTML = '<span class="bad">' + r.error + "</span>"; $("singGo").disabled = false; });
+api.on("sing:progress", ({ text, song, error }) => { if (text) $("singStatus").textContent = text; if (song) { $("singStatus").textContent = "《" + song.title + "》"; $("singLyrics").textContent = song.lyrics; } if (error) $("singStatus").innerHTML = '<span class="bad">' + error + "</span>"; });
+
+/* ---------- 新手向导 ---------- */
+let wizStep = 0;
+function renderWizard() {
+  const root = $("wizard"); root.innerHTML = ""; if (!state) return;
+  const s = state.settings;
+  const box = el("div", { class: "wiz" });
+  const steps = el("div", { class: "steps" }); for (let i = 0; i < 4; i++) steps.append(el("i", { class: i <= wizStep ? "on" : "" })); box.append(steps);
+  const nav = (backOk, nextLabel, onNext) => el("div", { class: "row end" }, backOk ? el("button", { class: "btn small", onclick: () => { wizStep--; renderWizard(); } }, "上一步") : el("span"), el("button", { class: "btn primary", onclick: onNext }, nextLabel));
+  if (wizStep === 0) {
+    const nameIn = el("input", { class: "plain", value: state.name, maxLength: 8, placeholder: "毛毛" });
+    const skins = el("div", { class: "skins" });
+    for (const k of state.skins) { const d = el("div", { class: "skin" + (s.skin === k.id ? " on" : ""), onclick: () => set({ skin: k.id }) }, k.name); d.append(el("small", {}, k.desc || "")); skins.append(d); }
+    box.append(el("h2", {}, "先给它起个名字，挑个样子"), el("div", { class: "hint" }, "名字以后随时能改；样子右键它也能换。"), field("名字", nameIn), skins,
+      nav(false, "下一步", async () => { await api.invoke("name:set", { name: nameIn.value }); wizStep = 1; renderWizard(); }));
+  } else if (wizStep === 1) {
+    const h = state.hooks;
+    const codexOk = h.codexInstalled, claudeOk = h.claudeInstalled;
+    box.append(el("h2", {}, "它的脑子接哪个"),
+      el("div", { class: "hint", html: "两个都不用 API key，用你电脑上已有的登录。<br>Codex：" + (codexOk ? '<span class="ok">检测到已登录</span>' : '<span class="bad">没登录</span>，终端里跑 <code>codex login</code>') + "<br>Claude Code：" + (claudeOk ? "装了；它说「脑子没接上」时在终端里打 <code>claude</code> → <code>/login</code>" : '<span class="bad">没装</span>') }),
+      field("用哪个", el("select", { onchange: e => set({ brain: e.target.value }) }, el("option", { value: "codex", selected: s.brain === "codex" }, "Codex" + (codexOk ? "（推荐，已登录）" : "")), el("option", { value: "claude", selected: s.brain !== "codex" }, "Claude"))),
+      nav(true, "下一步", () => { wizStep = 2; renderWizard(); }));
+  } else if (wizStep === 2) {
+    const keyIn = secretIn("minimaxKey", "粘贴 MiniMax 的 API Key");
+    const st = el("div", { class: "hint" }, state.secrets.minimaxKey ? "已经有 key 了。" : "没 key 也能用，先用电脑自带的声音，之后随时在设置里加。");
+    box.append(el("h2", {}, "给它一个好听的声音"),
+      el("div", { class: "hint", html: "推荐 MiniMax：在 <a class=\"lnk\" data-url=\"https://platform.minimaxi.com\">platform.minimaxi.com</a> 注册 → 账户管理 → API Key。贴进来会自动检测国内 / 国际站。" }),
+      field("MiniMax API Key（可选）", keyIn),
+      el("div", { class: "row end" }, el("button", { class: "btn small", onclick: async () => { const v = keyIn.value.trim(); if (!v) return; await api.invoke("secret:set", { name: "minimaxKey", value: v }); keyIn.value = ""; st.textContent = "检测中…"; const r = await api.invoke("voice:probe"); await refresh(); st.textContent = r.picked ? "接上了（" + (r.picked.includes("minimaxi") ? "国内站" : "国际站") + "）。设置里可以挑音色。" : "两个站点都不认这把 key，检查一下。"; } }, "保存并检测")),
+      st, nav(true, "下一步", () => { wizStep = 3; renderWizard(); }));
+    box.querySelectorAll("a[data-url]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); api.invoke("app:openUrl", { url: a.dataset.url }); }));
+  } else {
+    box.append(el("h2", {}, "好了，它是你的了"),
+      el("div", { class: "hint", html: "· 鼠标在它身上蹭 = 摸；按住拖 = 抱走；甩出去它会飞<br>· 点它 = 聊天；双击 = 转圈；右键 = 菜单<br>· 按住 🎙 说话，松开就发出去<br>· 「喂它」丢文件进去，它念给你听；还能做成绘本<br>· 「玩」里有猜拳和接豆子<br>· 快捷键 " + (s.hotkey || "Alt+Shift+M") + " 呼出这个窗口；菜单栏 🧶 可以退出<br>· 设置里的「让它盯着你的 AI」：Claude Code / Codex 跑完了它来叫你" }),
+      nav(true, "开始", async () => { await api.invoke("app:onboarded"); wizStep = 0; showTab("chat"); }));
+  }
+  root.append(box);
+}
+
+/* ---------- 设置 ---------- */
+function el(tag, attrs = {}, ...kids) { const n = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "class") n.className = v; else if (k.startsWith("on")) n.addEventListener(k.slice(2), v); else if (k === "html") n.innerHTML = v; else n[k] = v; } for (const k of kids) n.append(k); return n; }
+function field(label, input) { const l = el("label", { class: "f" }); l.append(label, input); return l; }
+function toggle(label, checked, onchange) { const i = el("input", { type: "checkbox", checked, onchange: e => onchange(e.target.checked) }); const l = el("label", { class: "t" }); l.append(label, i); return l; }
+function card(title, ...kids) { const c = el("div", { class: "card" }); c.append(el("h3", {}, title), ...kids); return c; }
+const set = patch => api.invoke("settings:set", patch);
+const secretIn = (name, placeholder) => el("input", { type: "password", placeholder: state.secrets[name] ? "已保存（" + ((state.hints || {})[name] || "…") + "），想换就再填" : placeholder });
+const saveSecretBtn = (name, inp, label = "保存", check) => el("button", { class: "btn small", onclick: async () => { const v = inp.value.trim(); if (!v) return; if (check) { const msg = check(v); if (msg) { alert(msg); return; } } await api.invoke("secret:set", { name, value: v }); inp.value = ""; await refresh(); } }, label);
+const clearSecretBtn = name => el("button", { class: "btn small danger", onclick: async () => { if (!state.secrets[name]) return; if (!confirm("把这个 key 清掉？")) return; await api.invoke("secret:set", { name, value: "" }); await refresh(); } }, "清除");
+function link(text, url) { return el("a", { class: "lnk", onclick: e => { e.preventDefault(); api.invoke("app:openUrl", { url }); } }, text); }
+
+let mcpEditing = null;   // 正在编辑的 MCP 条目
+function renderSettings() {
+  const root = $("settings"); root.innerHTML = ""; if (!state) return;
+  const s = state.settings;
+
+  // 名字 & 样子
+  const nameIn = el("input", { class: "grow plain", value: state.name, maxLength: 8 });
+  const skins = el("div", { class: "skins" });
+  for (const k of state.skins) { const d = el("div", { class: "skin" + (s.skin === k.id ? " on" : ""), onclick: () => set({ skin: k.id }) }, k.name); d.append(el("small", {}, k.desc || "")); skins.append(d); }
+  const sizeIn = el("input", { type: "range", min: 0.6, max: 1.8, step: 0.1, value: s.petScale || 1, onchange: e => set({ petScale: Number(e.target.value) }) });
+  root.append(card("它的名字和样子", el("div", { class: "row" }, nameIn, el("button", { class: "btn small", onclick: () => api.invoke("name:set", { name: nameIn.value }) }, "改好了")), skins,
+    field("它的大小（右键它也能调）", sizeIn),
+    el("div", { class: "hint" }, "鼠标在它身上蹭是摸；按住拖是抱走，甩出去它会飞；点一下开聊天；双击转圈；右键有菜单。")));
+
+  // 脑子
+  const brainSel = el("select", { onchange: e => set({ brain: e.target.value }) }, el("option", { value: "claude", selected: s.brain !== "codex" }, "Claude（Claude Agent SDK，用 Claude Code 的登录）"), el("option", { value: "codex", selected: s.brain === "codex" }, "Codex（OpenAI Codex SDK，用 codex login 的账号）"));
+  const brainCard = card("脑子", field("用哪个", brainSel));
+  if (s.brain === "codex") {
+    const keyIn = secretIn("openaiKey", "一般不用填：只有想用 OpenAI 的 API Key 计费时才填");
+    brainCard.append(
+      el("div", { class: "hint", html: (state.hooks.codexInstalled ? '<span class="ok">检测到你已经 codex login 过了。</span>' : '<span class="bad">没找到 codex 的登录。</span>在终端里跑 <code>codex login</code>。') + " 走的是本机 Codex，只读沙盒，不会动你的文件。" }),
+      field("模型（可选）", el("input", { value: s.codexModel || "", placeholder: "留空 = 你 codex 的默认", onchange: e => set({ codexModel: e.target.value.trim() }) })),
+      field("想多深", el("select", { onchange: e => set({ codexEffort: e.target.value }) }, ...["minimal", "low", "medium", "high"].map(v => el("option", { value: v, selected: (s.codexEffort || "low") === v }, v === "low" ? "low（聊天够用，快）" : v)))),
+      field("OpenAI API Key（可选；注意：MiniMax 的 key 不填这里，填「声音」）", keyIn),
+      el("div", { class: "row end" }, clearSecretBtn("openaiKey"), saveSecretBtn("openaiKey", keyIn, "保存 key", v => /^sk-api-/.test(v) ? "这是 MiniMax 的 key（sk-api- 开头），应该填在「声音」里，不是这里。" : (/^sk-/.test(v) || /^ey/.test(v)) ? "" : "OpenAI 的 key 一般是 sk- 开头，这个看起来不像。")),
+      el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { await api.invoke("chat:reset"); addMsg("sys", "它把之前的聊天忘了，重新开始。"); showTab("chat"); } }, "忘掉之前的聊天"))
+    );
+  } else {
+    const tokIn = secretIn("claudeToken", "可选：claude setup-token 生成的长期令牌");
+    brainCard.append(
+      el("div", { class: "hint", html: "它说「脑子没接上」时：在终端里打 <code>claude</code>，输入 <code>/login</code> 登录一次再回来。还不行就跑 <code>claude setup-token</code>，把令牌贴在下面。" }),
+      field("长期令牌（可选）", tokIn), el("div", { class: "row end" }, clearSecretBtn("claudeToken"), saveSecretBtn("claudeToken", tokIn, "保存令牌")),
+      field("模型（可选）", el("input", { value: s.model || "", placeholder: "留空 = Claude Code 默认（推荐）", onchange: e => set({ model: e.target.value.trim() }) })),
+      el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { await api.invoke("chat:reset"); addMsg("sys", "它把之前的聊天忘了，重新开始。"); showTab("chat"); } }, "忘掉之前的聊天"))
+    );
+  }
+  root.append(brainCard);
+
+  // 声音
+  const keyIn = secretIn("minimaxKey", "粘贴 MiniMax 的 API Key");
+  const hostSel = el("select", { onchange: e => set({ minimaxHost: e.target.value }) }, el("option", { value: "https://api.minimax.io", selected: s.minimaxHost === "https://api.minimax.io" }, "国际站 api.minimax.io"), el("option", { value: "https://api.minimaxi.com", selected: s.minimaxHost === "https://api.minimaxi.com" }, "国内站 api.minimaxi.com"));
+  const groupIn = el("input", { value: s.minimaxGroupId || "", placeholder: "国内站需要：账户信息里的 GroupId", onchange: e => set({ minimaxGroupId: e.target.value.trim() }) });
+  const MODELS = ["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo", "speech-02-hd", "speech-02-turbo"];
+  const modelSel = el("select", { onchange: e => set({ minimaxModel: e.target.value }) }, ...MODELS.map(m => el("option", { value: m, selected: (s.minimaxModel || "speech-2.8-hd") === m }, m + (m.endsWith("hd") ? "（更自然）" : "（便宜）"))));
+  const readModelSel = el("select", { onchange: e => set({ readModel: e.target.value }) }, ...MODELS.map(m => el("option", { value: m, selected: (s.readModel || "speech-2.8-turbo") === m }, m)));
+  const pitch = el("input", { type: "range", min: -6, max: 6, step: 1, value: s.pitch || 0, onchange: e => set({ pitch: Number(e.target.value) }) });
+  const voiceIn = el("input", { value: s.voiceId || "", placeholder: "voice_id", onchange: e => set({ voiceId: e.target.value.trim() }) });
+  // 音色列表：可搜索，每行能试听、能选
+  let voices = state.__voices || [];
+  const vsearch = el("input", { class: "grow plain", placeholder: "搜音色：萌、少女、男童、温柔…" });
+  const vlist = el("div", { class: "vlist" });
+  const REC = ["Chinese (Mandarin)_Cute_Spirit", "lovely_girl", "cute_boy", "Chinese (Mandarin)_Warm_Girl", "Chinese (Mandarin)_Crisp_Girl", "qiaopi_mengmei", "tianxin_xiaoling", "Cute_Elf", "Chinese (Mandarin)_Straightforward_Boy", "female-tianmei", "Chinese (Mandarin)_Sweet_Lady", "Chinese (Mandarin)_Gentle_Youth"];
+  const isZh = v => /Chinese|Mandarin|Cantonese|[\u4e00-\u9fff]|^(female|male)-|cute|lovely|audiobook|girl|boy|spirit|sweet|gentle|warm|elf/i.test(v.id + v.name + v.desc);
+  function renderVoices() {
+    vlist.innerHTML = "";
+    if (!voices.length) { vlist.append(el("div", { class: "hint", style: "padding:10px" }, "点「拉取音色」把 MiniMax 的音色列表拿过来。")); return; }
+    const q = vsearch.value.trim().toLowerCase();
+    const match = v => !q || (v.id + " " + v.name + " " + v.desc).toLowerCase().includes(q);
+    const rec = REC.map(id => voices.find(v => v.id === id)).filter(Boolean).filter(match);
+    const zh = voices.filter(v => isZh(v) && !REC.includes(v.id)).filter(match);
+    const rest = voices.filter(v => !isZh(v) && !REC.includes(v.id)).filter(match);
+    const row = (v, tag) => {
+      const r = el("div", { class: "vrow" + (v.id === (state.settings.voiceId) ? " on" : "") });
+      const n = el("div", { class: "vn" }); n.append(el("b", {}, v.name || v.id), el("small", {}, v.desc || v.id));
+      r.append(n);
+      if (tag) r.append(el("span", { class: "vg" }, tag));
+      r.append(el("button", { class: "btn small", onclick: async () => { status.textContent = "试听「" + v.name + "」…"; const x = await api.invoke("voice:audition", { voiceId: v.id }); status.innerHTML = x.error ? '<span class="bad">' + x.error + "</span>" : "喜欢就点「用这个」。"; } }, "试听"));
+      r.append(el("button", { class: "btn small primary", onclick: async () => { voiceIn.value = v.id; await set({ voiceId: v.id }); renderVoices(); } }, "用这个"));
+      return r;
+    };
+    if (rec.length) { vlist.append(el("div", { class: "hint", style: "padding:6px 8px 2px" }, "推荐给毛团")); rec.forEach(v => vlist.append(row(v, "推荐"))); }
+    if (zh.length) { vlist.append(el("div", { class: "hint", style: "padding:6px 8px 2px" }, "中文 / 亚洲音色（" + zh.length + "）")); zh.forEach(v => vlist.append(row(v, v.kind === "system" ? "" : v.kind))); }
+    if (rest.length) { vlist.append(el("div", { class: "hint", style: "padding:6px 8px 2px" }, "其它（" + rest.length + "）")); rest.forEach(v => vlist.append(row(v, v.kind === "system" ? "" : v.kind))); }
+    if (!rec.length && !zh.length && !rest.length) vlist.append(el("div", { class: "hint", style: "padding:10px" }, "没搜到。"));
+  }
+  vsearch.addEventListener("input", renderVoices);
+  const fetchBtn = el("button", { class: "btn small", onclick: async () => {
+    status.textContent = "拉取中…";
+    let r = await api.invoke("voice:listMinimax");
+    if (r.error && /api key|401|1004/i.test(r.error)) { status.textContent = "这个站点不认，换一个试试…"; await api.invoke("voice:probe"); await refresh(); r = await api.invoke("voice:listMinimax"); }
+    if (r.error) { status.innerHTML = '<span class="bad">拉不到：' + r.error + "</span>"; return; }
+    voices = r.voices; state.__voices = voices; status.textContent = "拉到 " + voices.length + " 个音色。"; renderVoices();
+  } }, "拉取音色");
+  renderVoices();
+  const speed = el("input", { type: "range", min: 0.7, max: 1.4, step: 0.05, value: s.speed || 1, onchange: e => set({ speed: Number(e.target.value) }) });
+  const status = el("div", { class: "hint" });
+  const showProbe = r => {
+    if (r.error) { status.innerHTML = '<span class="bad">' + r.error + "</span>"; return; }
+    const lines = Object.entries(r.hosts).map(([h, v]) => (h.includes("minimaxi") ? "国内站" : "国际站") + "：" + (v.ok ? '<span class="ok">认这把 key（' + v.count + ' 个系统音色）</span>' : '<span class="bad">' + v.error + "</span>"));
+    status.innerHTML = lines.join("<br>") + (r.picked ? "<br>已自动切到能用的站点，点「拉取音色」吧。" : "<br>两边都不认：检查 key 是否完整、有没有多余空格；国内站还要填 GroupId。");
+    if (r.picked) hostSel.value = r.picked;
+  };
+  const showStatus = () => { status.innerHTML = state.voiceProvider === "minimax" ? '<span class="ok">现在用的是 MiniMax。</span>' : '<span class="bad">现在用的是本地系统语音。</span>填好 key 就会切过去。' + (state.voiceError ? ' 上次 MiniMax 报错：<code>' + state.voiceError + '</code>' : ""); };
+  showStatus();
+  const provSel = el("select", { onchange: e => set({ voice: e.target.value }) }, el("option", { value: "minimax", selected: s.voice === "minimax" }, "MiniMax（好听）"), el("option", { value: "say", selected: s.voice === "say" }, "本地系统语音（免费、离线、难听）"));
+  const readSel = el("select", { onchange: e => set({ readWith: e.target.value }) }, el("option", { value: "minimax", selected: s.readWith === "minimax" }, "MiniMax（按字数计费）"), el("option", { value: "say", selected: s.readWith === "say" }, "本地系统语音（免费）"));
+  const saySel = el("select", { onchange: e => set({ sayVoice: e.target.value }) }, el("option", { value: s.sayVoice || "" }, s.sayVoice || "系统默认"));
+  api.invoke("voice:listSay").then(r => { if (!(r.voices || []).length) return; saySel.innerHTML = ""; r.voices.forEach(v => saySel.append(el("option", { value: v.id, selected: v.id === s.sayVoice }, v.name + " (" + v.lang + ")"))); });
+  const steps = el("ol", { class: "steps" });
+  [["打开 ", link("MiniMax 开放平台（国内）", "https://platform.minimaxi.com"), " 或 ", link("国际站", "https://platform.minimax.io"), "，注册、实名、充一点钱（聊天几乎不花钱）。"],
+   ["左侧「账户管理 → API Key」→ 新建一个，复制。国内站再把「账户信息」里的 GroupId 抄下来。"],
+   ["把 key 贴进下面，点「保存 key」；选对站点；国内站填 GroupId。"],
+   ["点「拉取音色」，在列表里挑一个，再点「试听一句」。"]].forEach(parts => { const li = el("li"); li.append(...parts); steps.append(li); });
+  root.append(card("声音",
+    field("平时说话用", provSel), el("div", { class: "hint" }, "接 MiniMax 的步骤："), steps,
+    field("MiniMax API Key", keyIn),
+    el("div", { class: "row end" }, clearSecretBtn("minimaxKey"), el("button", { class: "btn small", onclick: async () => { status.textContent = "两个站点各试一下…"; const r = await api.invoke("voice:probe"); await refresh(); showProbe(r); } }, "检测这把 key"),
+      el("button", { class: "btn small primary", onclick: async () => { const v = keyIn.value.trim(); if (!v) return; await api.invoke("secret:set", { name: "minimaxKey", value: v }); keyIn.value = ""; status.textContent = "存好了，两个站点各试一下…"; const r = await api.invoke("voice:probe"); await refresh(); showProbe(r); } }, "保存 key")),
+    field("接哪个站", hostSel), field("GroupId", groupIn), field("模型", modelSel),
+    field("音色 voice_id", voiceIn),
+    el("div", { class: "row" }, vsearch, fetchBtn),
+    vlist,
+    field("语速", speed), field("语调（负数低沉，正数清亮）", pitch),
+    field("念长文章 / 小说的模型", readModelSel),
+    el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: async () => { status.textContent = "在合成…"; const r = await api.invoke("voice:test", {}); await refresh(); showStatus(); if (r.error) status.innerHTML += ' <span class="bad">' + r.error + "</span>"; } }, "试听一句"), el("button", { class: "btn small", onclick: () => api.invoke("voice:stop") }, "闭嘴")),
+    status,
+    field("念长文章 / 小说时用", readSel), field("本地系统语音的音色", saySel),
+    el("div", { class: "hint" }, "MiniMax 按字数计费：Turbo 约 60 美元 / 百万字，一本三十万字的小说约 18 美元；平时聊天几句话几乎不花钱。")
+  ));
+
+  // MCP
+  const mcpCard = card("它能碰的东西（MCP）");
+  mcpCard.append(el("div", { class: "hint" }, "毛团自带：记事本、让别的程序叫它说话" + (state.platform === "darwin" ? "、控制本机「音乐」App" : "") + "。下面是你接进来的："));
+  if (!(state.mcp || []).length) mcpCard.append(el("div", { class: "hint" }, "还没接东西。"));
+  for (const m of state.mcp || []) {
+    const item = el("div", { class: "mcp-item" });
+    const st = !m.enabled ? "关着" : m.error ? m.error : (m.brainStatus ? ({ connected: "已连上", failed: "连不上", "needs-auth": "要登录", pending: "等着连" }[m.brainStatus] || m.brainStatus) : "配置好了，聊一句就会连");
+    item.append(el("input", { type: "checkbox", checked: !!m.enabled, onchange: async e => { const entry = (s.mcp || []).find(x => x.id === m.id); if (entry) await api.invoke("mcp:save", { entry: { ...entry, enabled: e.target.checked } }); } }));
+    const nm = el("div", { class: "nm" }); nm.append(el("b", {}, m.name), el("span", { class: "st" + (m.error || m.brainStatus === "failed" ? " bad" : "") }, st)); item.append(nm);
+    item.append(el("button", { class: "btn small", onclick: () => { mcpEditing = (s.mcp || []).find(x => x.id === m.id); renderSettings(); } }, "编辑"), el("button", { class: "btn small danger", onclick: async () => { if (confirm("把「" + m.name + "」拿掉？")) await api.invoke("mcp:remove", { id: m.id }); } }, "删"));
+    mcpCard.append(item);
+  }
+  const presetSel = el("select", { class: "grow" }, el("option", { value: "" }, "添加一个…"), ...state.presets.map(p => el("option", { value: p.id }, p.name)));
+  presetSel.addEventListener("change", () => { const p = state.presets.find(x => x.id === presetSel.value); if (!p) return; mcpEditing = { id: p.id === "custom" ? "custom-" + Date.now().toString(36) : p.id + (state.mcp.some(m => m.id === p.id) ? "-" + Date.now().toString(36) : ""), preset: p.id, name: p.name, enabled: true, fields: {}, type: p.type === "http" ? "http" : "stdio", command: "", args: [], env: {}, url: "", headers: {} }; renderSettings(); });
+  mcpCard.append(el("div", { class: "row" }, presetSel));
+  if (mcpEditing) mcpCard.append(mcpEditor(mcpEditing));
+  mcpCard.append(el("div", { class: "hint", html: "WorkBuddy、Claude Code、Codex 这类是「客户端」，不是被接的东西——反过来，它们可以接毛团：把 <code>" + state.dataDir + "</code> 下那个 <code>maotuan-tools</code> 加成它们的 MCP，就能让毛团替它们说话。见 README。" }));
+  root.append(mcpCard);
+
+  // 盯着你的 AI
+  const h = state.hooks;
+  const hookCard = card("让它盯着你的 AI",
+    el("div", { class: "hint" }, "Claude Code 或 Codex 跑完一轮、或者在等你确认时，毛团会蹦起来叫你。只是在本机 127.0.0.1:" + h.port + " 上收个通知，不出网。"),
+    el("div", { class: "row" }, el("span", { class: "grow" }, "Claude Code " + (h.claude ? "✓ 已盯着" : h.claudeInstalled ? "· 没盯" : "· 本机没装")), h.claude ? el("button", { class: "btn small", onclick: async () => { await api.invoke("hooks:uninstall", { which: "claude" }); } }, "不盯了") : el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("hooks:install", { which: "claude" }); if (r.error) alert(r.error); } }, "盯着")),
+    el("div", { class: "row" }, el("span", { class: "grow" }, "Codex " + (h.codex ? "✓ 已盯着" : h.codexInstalled ? "· 没盯" : "· 本机没登录")), h.codex ? el("span", { class: "hint" }, "改回去见 README") : el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("hooks:install", { which: "codex" }); if (r.error) alert(r.error); } }, "盯着")),
+    el("div", { class: "row" }, el("button", { class: "btn small", onclick: () => api.invoke("hooks:test") }, "试一下它怎么叫你"))
+  );
+  if (state.agent) hookCard.append(el("div", { class: "hint" }, "上次：" + state.agent.text));
+  root.append(hookCard);
+
+  // 其它
+  const hk = el("input", { value: s.hotkey || "", placeholder: "比如 Alt+Shift+M，留空=不用" });
+  root.append(card("语音输入（按住 🎙 说话）",
+    el("div", { class: "hint" }, "本地 Whisper 识别，离线、不上传。第一次用会下载模型（small 约 250MB，base 约 80MB 但中文差一些）。"),
+    field("模型", el("select", { onchange: e => set({ sttModel: e.target.value }) }, ...[["Xenova/whisper-small", "small（推荐，中文准）"], ["Xenova/whisper-base", "base（小、快、差一点）"], ["Xenova/whisper-medium", "medium（大、慢、更准）"]].map(([v, t]) => el("option", { value: v, selected: (s.sttModel || "Xenova/whisper-small") === v }, t)))),
+    field("模型下载走哪", el("select", { onchange: e => set({ hfMirror: e.target.value }) }, el("option", { value: "https://hf-mirror.com", selected: (s.hfMirror || "https://hf-mirror.com") === "https://hf-mirror.com" }, "hf-mirror.com（国内快）"), el("option", { value: "https://huggingface.co", selected: s.hfMirror === "https://huggingface.co" }, "huggingface.co"))),
+    el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("stt:warm"); alert(r.error ? "没成：" + r.error : "模型准备好了。"); } }, "现在就下载模型"), el("span", { class: "hint" }, state.stt ? state.stt : ""))
+  ));
+  root.append(card("其它",
+    el("div", { class: "row" }, el("span", { class: "hint" }, "呼出 / 收起聊天窗的快捷键"), hk, el("button", { class: "btn small", onclick: async () => { const r = await set({ hotkey: hk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
+    el("div", { class: "row" }, el("button", { class: "btn small", onclick: () => { wizStep = 0; showTab("wizard"); } }, "再看一遍新手引导")),
+    toggle("开机就出来", !!state.loginItem, v => api.invoke("app:loginItem", { on: v })),
+    toggle("静音", !!s.muted, v => set({ muted: v })),
+    el("div", { class: "row" }, el("button", { class: "btn small", onclick: () => api.invoke("app:openData") }, "打开它的数据文件夹"), el("button", { class: "btn small", onclick: () => api.invoke("panel:hide") }, "收起这个窗口"), el("button", { class: "btn small danger", onclick: () => api.invoke("app:quit") }, "退出毛团"))
+  ));
+}
+
+function mcpEditor(e) {
+  const p = state.presets.find(x => x.id === e.preset) || state.presets.find(x => x.id === "custom");
+  const box = el("div", { class: "card" }); box.style.background = "var(--surface-2)";
+  box.append(el("h3", {}, (e.preset === "custom" ? "自定义" : p.name) + " · " + (state.mcp.some(m => m.id === e.id) ? "编辑" : "添加")));
+  if (p.desc) box.append(el("div", { class: "hint" }, p.desc, p.help ? " " : "", p.help ? link("说明", p.help) : ""));
+  const nameIn = el("input", { value: e.name || p.name, onchange: ev => { e.name = ev.target.value; } });
+  box.append(field("叫它什么", nameIn));
+  const secretInputs = [];
+  if (e.preset !== "custom") {
+    for (const f of p.fields || []) {
+      if (f.secret) { const inp = el("input", { type: "password", placeholder: state.secrets[`mcp:${e.id}:${f.key}`] ? "已保存，想换就再填" : "" }); secretInputs.push([f.key, inp]); box.append(field(f.label, inp)); }
+      else { const inp = el("input", { value: (e.fields || {})[f.key] || "", onchange: ev => { e.fields = e.fields || {}; e.fields[f.key] = ev.target.value.trim(); } }); box.append(field(f.label, inp)); }
+    }
+  } else {
+    const typeSel = el("select", { onchange: ev => { e.type = ev.target.value; } }, ...[["stdio", "本地命令（stdio）"], ["http", "网址（streamable http）"], ["sse", "网址（sse）"]].map(([v, t]) => el("option", { value: v, selected: (e.type || "stdio") === v }, t)));
+    box.append(field("类型", typeSel));
+    box.append(field("命令（stdio）", el("input", { value: e.command || "", placeholder: "npx", onchange: ev => { e.command = ev.target.value.trim(); } })));
+    box.append(field("参数（一行一个）", el("textarea", { class: "small", value: (e.args || []).join("\n"), onchange: ev => { e.args = ev.target.value.split("\n").map(x => x.trim()).filter(Boolean); } })));
+    box.append(field("环境变量（KEY=VALUE，一行一个）", el("textarea", { class: "small", value: Object.entries(e.env || {}).map(([k, v]) => k + "=" + v).join("\n"), onchange: ev => { e.env = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf("="); if (i > 0) e.env[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
+    box.append(field("网址（http / sse）", el("input", { value: e.url || "", placeholder: "https://…/mcp", onchange: ev => { e.url = ev.target.value.trim(); } })));
+    box.append(field("请求头（Header: value，一行一个）", el("textarea", { class: "small", value: Object.entries(e.headers || {}).map(([k, v]) => k + ": " + v).join("\n"), onchange: ev => { e.headers = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) e.headers[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
+  }
+  box.append(el("div", { class: "row end" },
+    el("button", { class: "btn small", onclick: () => { mcpEditing = null; renderSettings(); } }, "算了"),
+    el("button", { class: "btn small primary", onclick: async () => {
+      for (const [key, inp] of secretInputs) { const v = inp.value.trim(); if (v) await api.invoke("secret:set", { name: `mcp:${e.id}:${key}`, value: v }); }
+      await api.invoke("mcp:save", { entry: { ...e, name: nameIn.value.trim() || e.name, enabled: true } });
+      mcpEditing = null; await refresh();
+    } }, "保存")));
+  return box;
+}
+refresh();
+</script>
+</body>
+</html>

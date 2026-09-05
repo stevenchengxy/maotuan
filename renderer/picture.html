@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>它画的</title>
+<style>
+  :root { --ink:#33303A; --soft:#6E6776; --bg:#F6F2E9; --card:#FFFDF8; --line:rgba(60,50,60,.14); --berry:#AF5164; --on:#FFF7F3; }
+  @media (prefers-color-scheme: dark) { :root { --ink:#EDE7DC; --soft:#A69DAF; --bg:#221D2A; --card:#2C2634; --line:rgba(255,255,255,.1); --berry:#D8808F; --on:#2A1A1F; } }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--bg); color:var(--ink); font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; }
+  body { display:flex; flex-direction:column; }
+  header { -webkit-app-region:drag; padding:14px 18px 8px 80px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  h1 { margin:0; font-family:"Songti SC","STSong","SimSun",serif; font-size:18px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pic { flex:1; min-height:0; margin:0 18px; background:var(--card); border:1px solid var(--line); border-radius:18px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pic img { max-width:100%; max-height:100%; object-fit:contain; }
+  footer { -webkit-app-region:no-drag; padding:12px 18px 16px; display:flex; gap:10px; align-items:center; }
+  button { font:inherit; color:inherit; border:1px solid var(--line); background:var(--card); border-radius:999px; padding:8px 16px; cursor:pointer; font-size:14px; }
+  .hint { font-size:12px; color:var(--soft); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+</style>
+</head>
+<body>
+<header><h1 id="title">它画的</h1><span class="hint" id="meta"></span></header>
+<div class="pic"><img id="img" alt=""></div>
+<footer><button id="prev">上一张</button><button id="next">下一张</button><span class="hint" id="prompt"></span><button id="reveal">在访达里看</button></footer>
+<script>
+const api = window.mt; const $ = id => document.getElementById(id);
+let list = [], i = 0;
+function show(k) { if (!list.length) return; i = Math.max(0, Math.min(list.length - 1, k)); const p = list[i]; $("img").src = "file://" + encodeURI(p.file).replace(/#/g, "%23"); $("title").textContent = p.title || "它画的"; $("meta").textContent = `${i + 1} / ${list.length}`; $("prompt").textContent = p.prompt || ""; $("prev").disabled = i === 0; $("next").disabled = i === list.length - 1; }
+$("prev").addEventListener("click", () => show(i - 1)); $("next").addEventListener("click", () => show(i + 1));
+$("reveal").addEventListener("click", () => api.invoke("app:reveal", { path: list[i] && list[i].file }));
+window.addEventListener("keydown", e => { if (e.key === "ArrowLeft") show(i - 1); if (e.key === "ArrowRight") show(i + 1); });
+api.on("pictures", ({ pictures, index }) => { list = pictures; show(index == null ? list.length - 1 : index); });
+api.invoke("pictures:get").then(r => { list = r.pictures || []; show(list.length - 1); });
+</script>
+</body>
+</html>

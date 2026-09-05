@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.shots/
+.electron.log
+.app.log
+.DS_Store
+*.tmp
