@@ -4,6 +4,8 @@ import os from "node:os";
 import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { splitSentences, stripEmotion } from "./text.js";
+import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
+import { HEROES } from "../renderer/skins/heroCatalog.js";
 
 // 声音：MiniMax 合成，本地 say 兜底；一句一句排队念，边合成下一句边放这一句
 export class Voice {
@@ -20,6 +22,13 @@ export class Voice {
     this.onState = () => {};   // ({talking, item})
   }
 
+  // 二次元角色 / 英雄各有自己的音色（设置里可以关掉，都用主人挑的那个）
+  charVoice() {
+    const s = this.store.settings;
+    if (s.charVoice === false) return null;
+    const c = L2D_MODELS[s.skin] || HEROES[s.skin];
+    return c && c.voice && c.voice.id ? c.voice : null;
+  }
   provider(kind = "chat") {
     const s = this.store.settings;
     const want = kind === "read" ? s.readWith : s.voice;
@@ -32,14 +41,18 @@ export class Voice {
     provider = provider || this.provider(kind);
     const s = this.store.settings;
     model = model || (kind === "read" ? (s.readModel || s.minimaxModel) : s.minimaxModel);
-    voiceId = voiceId || s.voiceId;
-    const key = crypto.createHash("sha1").update([provider, model, voiceId, s.speed, s.pitch || 0, s.sayVoice, emotion, text].join("|")).digest("hex");
+    const c = provider === "minimax" && !voiceId ? this.charVoice() : null;
+    if (c && !this._loggedChar) { this._loggedChar = true; this.log("[voice] character voice", c.id, "speed", c.speed || 1, "pitch", c.pitch || 0); }
+    voiceId = voiceId || (c && c.id) || s.voiceId;
+    const speed = (Number(s.speed) || 1) * ((c && c.speed) || 1), pitch = Math.round((Number(s.pitch) || 0) + ((c && c.pitch) || 0));
+    if (!emotion && c && c.emotion) emotion = c.emotion;
+    const key = crypto.createHash("sha1").update([provider, model, voiceId, speed, pitch, s.sayVoice, emotion, text].join("|")).digest("hex");
     const ext = provider === "minimax" ? "mp3" : "wav";
     const file = path.join(this.cacheDir, key + "." + ext);
     if (fs.existsSync(file)) return { buffer: fs.readFileSync(file), format: ext };
     let buffer;
     if (provider === "minimax") {
-      try { buffer = await this.minimax(text, emotion, { model, voiceId }); }
+      try { buffer = await this.minimax(text, emotion, { model, voiceId, speed, pitch }); }
       catch (e) { this.log("minimax failed, falling back to say:", e.message); this.lastError = e.message; return this.synth(text, { provider: "say" }); }
     } else {
       buffer = await this.say(text);
@@ -48,7 +61,7 @@ export class Voice {
     return { buffer, format: ext };
   }
 
-  async minimax(text, emotion, { model, voiceId } = {}) {
+  async minimax(text, emotion, { model, voiceId, speed, pitch } = {}) {
     const s = this.store.settings;
     const key = this.store.getSecret("minimaxKey");
     if (!key) throw new Error("no key");
@@ -60,7 +73,7 @@ export class Voice {
       stream: false,
       output_format: "hex",
       language_boost: "Chinese",
-      voice_setting: { voice_id: voiceId || s.voiceId, speed: Number(s.speed) || 1, vol: 1, pitch: Math.round(Number(s.pitch) || 0), ...(emotion ? { emotion } : {}) },
+      voice_setting: { voice_id: voiceId || s.voiceId, speed: speed || Number(s.speed) || 1, vol: 1, pitch: Math.round(pitch ?? (Number(s.pitch) || 0)), ...(emotion ? { emotion } : {}) },
       audio_setting: { sample_rate: 32000, bitrate: 128000, format: "mp3", channel: 1 }
     };
     const ac = new AbortController();

@@ -544,6 +544,7 @@ function renderSettings() {
     field("音色 voice_id", voiceIn),
     el("div", { class: "row" }, vsearch, fetchBtn),
     vlist,
+    el("label", { class: "row", style: "gap:8px;align-items:center;margin-top:8px" }, el("input", { type: "checkbox", checked: s.charVoice !== false, onchange: e => set({ charVoice: e.target.checked }) }), el("span", {}, "二次元角色和英雄用各自配好的音色（关掉就都用上面选的）")),
     field("语速", speed), field("语调（负数低沉，正数清亮）", pitch),
     field("念长文章 / 小说的模型", readModelSel),
     el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: async () => { status.textContent = "在合成…"; const r = await api.invoke("voice:test", {}); await refresh(); showStatus(); if (r.error) status.innerHTML += ' <span class="bad">' + r.error + "</span>"; } }, "试听一句"), el("button", { class: "btn small", onclick: () => api.invoke("voice:stop") }, "闭嘴")),

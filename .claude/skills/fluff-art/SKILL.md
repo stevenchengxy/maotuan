@@ -9,8 +9,9 @@ description: 毛团（桌面小宠物）的外观规范与打磨流程。改它�
 
 - 手绘（矢量）：`fluff.js` 毛团（下面这份规范主要说它）、`jelly.js` 水母、`slime.js` 史莱姆、`ghost.js` 小幽灵、`robot.js` 小机器人。后三个基于 `vectorBase.js`（共用状态机 / 眨眼 / 小动作 / 粒子 / 脸部件），只写身体和脸。
 - 像素：`pixelFamily.js` 引擎 + `sprites.js` 图纸。`blob` 是照着用户给的参考图做的：平涂紫色 `#8360F7`、两个 2×2 的黑方块眼睛、平时没有嘴、没有腮红、**没有方框**（用户明确不要方框）。其它像素图纸：pjelly / pcat / pghost / probot / pslime。嘴只在说话、打哈欠时出现。
-- 二次元 Q 版：`chibi.js`。`makeChibi(def)` 是基于 `vectorBase.js` 的两头身引擎，`CHIBIS` 里放 7 个角色定义（小樱 / 小雪 / 小柚 / 猫耳娘 / 小澄 / 小阳 / 小白）：发型 twin / long / bob / spiky / messy，刘海 straight / side / messy，配饰 bow / clip / glasses / headphones / catears / choker / collar / bandage / sailor / stripe / vest / hoodie。眼睛统一走 `animeEye()`：虹膜渐变 + 瞳孔 + 两点高光 + 粗睫毛（女生多一根外翘睫毛）；手臂有一圈深色描边，白衣服在浅色桌面上才看得见。加角色只要在 `CHIBIS` 加一条定义，再登记到 `main/index.js` 的 `SKIN_LIST` 和 `main/persona.js` 的皮肤描述。
 - 二次元 Live2D：`live2d.js` + `live2dCatalog.js`。不是画的，是 Live2D 官方免费示例模型（Hiyori / Haru / Rice / Mao / Mark / Natori / Wanko），主进程 `main/live2d.js` 第一次用时下载到 `userData/live2d/`，`main/watcher.js` 的 `/live2d/` 静态口喂给渲染层；渲染层在 `#stage` 底下垫一张 WebGL 画布交给 pixi.js + pixi-live2d-display，原来的 2D 画布只画粒子和下载进度。表情、待机动作是模型自带；嘴（`ParamMouthOpenY`）、眼（睡觉闭眼）、脸红（`ParamCheek`）、看向（`model.focus`）、拎起来晃（`ParamAngleZ`）在 `beforeModelUpdate` 里每帧盖上去；蹦 / 落地压扁 / 转圈动的是模型容器的位移、缩放、旋转。Cubism 5.3 的新格式（moc3 v6，如 Ren）当前引擎不认，别加。
+- 反应表：每个有人设的角色（Live2D 和英雄）在各自的 catalog 里有 `react`（事件 → 动作串：motion / exp / params / pose / fx / hop / spin / delay）、`moods`、`voice`、`greeting`、`style`、`lines`。事件从角色自己的角度说（`rps:win` = 它赢了）；pet.js 的三个桌面小游戏会调 `skin.react(ev, ctx)` 并用 `skin.lines` 里的台词，没有反应表的皮肤走通用动作。特效库 `fx2d.js`：粒子（heart / star / sparkle / petal / snow / confetti / bone / paw / sweat / smoke / spark / ember / wisp …）和图层（ring / glow / lines / cloud / flash / bolt / magic / text / web / shake / hud）。
+- 英雄：`heroes.js` 是手绘 Q 版（两头身、粗描边，poseOf 里定义姿势），`photoSkin.js` 是真实版——主进程 `main/heroart.js` 用 MiniMax image-01 按 `LOOK` 描述出三张写实图（绿幕 / 洋红幕），渲染层按"颜色优势"抠图、去溢色，再做呼吸 / 悬浮 / 看向 / 蹦 / 压扁 / 转身；反应表里的 pose 通过 `POSE_IMG` 映射成换图。没图（没 key）时用手绘版顶着。不要把任何漫威素材放进仓库。
 
 交互动画（所有皮肤都要响应）：摸 = 毛/格子/涟漪 + 爱心；抱走 = 脚晃、表情开心；甩出去 = 主进程做抛物线和弹跳，落地时 `land(k)` 压扁；双击 = `spin()`；AI 跑完 = 蹦一下 + 爱心 + 气泡。
 

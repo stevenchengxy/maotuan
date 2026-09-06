@@ -14,7 +14,6 @@
   <img src="docs/game-dice.png" width="300" alt="比大小">
 </p>
 <p align="center"><img src="docs/live2d-sheet.png" width="860" alt="二次元 Live2D 角色：日和、春、莱丝、真绪、马克、名取、年糕犬"></p>
-<p align="center"><img src="docs/chibi-sheet.png" width="860" alt="二次元 Q 版角色：小樱、小雪、小柚、猫耳娘、小澄、小阳、小白"></p>
 
 ---
 
@@ -31,7 +30,7 @@
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
 | **盯着你的 AI** | Claude Code 或 Codex 跑完一轮、或在等你确认时，它蹦起来叫你 |
-| **25 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；Q 版：小樱、小雪、小柚、猫耳娘、小澄、小阳、小白；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬（见下） |
+| **24 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬；**真实版英雄**：钢铁侠、蜘蛛侠、绿巨人、洛基、雷神、贾维斯（见下，每位有自己的特效、台词和音色） |
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
@@ -45,6 +44,38 @@
 - 第一次选中某个角色，会从 Live2D 官方 GitHub（失败则走 jsDelivr 镜像）把模型下到本机 `userData/live2d/`，每个 3–10 MB；引擎 Cubism Core 从 Live2D 官方 CDN 取。仓库和安装包里都不含这些文件，下载时它站的地方会显示进度。
 - 版权：角色模型 © Live2D Inc.，按 [Live2D Free Material License](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html) 和[示例数据使用条款](https://www.live2d.com/eula/live2d-sample-model-terms_en.html)使用；名取仁是协作角色，仅限非商用。This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc.
 - 想接别的 Live2D 模型（Cubism 3 / 4 的 `.moc3`）：在 `renderer/skins/live2dCatalog.js` 加一条（目录名、model3.json 文件名、缩放），模型文件放进 `userData/live2d/<目录>/` 并在里面放一个空的 `.complete` 文件即可。
+
+### 每个角色一套反应
+
+猜拳、骰子、接豆子，赢了 / 输了 / 平了，被摸、被点、落地、转圈——每个角色的反应都不一样，写在 `renderer/skins/live2dCatalog.js` 和 `heroCatalog.js` 的反应表里：日和撒樱花、春放金彩带、莱丝召唤冰魔法阵、真绪的彩虹魔法和魔杖特效、马克的漫画集中线、名取推眼镜时镜片反光、年糕犬得意脸加骨头雨。表情、动作是 Live2D 模型自带的，粒子、光环、雨云、闪光、飘字是 `renderer/skins/fx2d.js` 画的。台词也各有各的口气（{it}{me} 是出的手势 / 点数），聊天时的说话风格会一并写进人设。
+
+<p align="center"><img src="docs/live2d-fx-sheet.png" width="860" alt="Live2D 角色的游戏特效"></p>
+
+### 音色也配好了
+
+选了带人设的角色，说话就用它自己的 MiniMax 音色（设置 → 声音 里可以关掉，改用你挑的那个）：
+
+| 角色 | 音色 | 角色 | 音色 |
+|---|---|---|---|
+| 日和 | 清脆少女 | 钢铁侠 | 不羁青年 |
+| 春 | 甜美女声 | 蜘蛛侠 | 率真弟弟 |
+| 莱丝 | 温暖少女（慢一点、低一点） | 绿巨人 | 播报男声（压低六个半音） |
+| 真绪 | 俏皮萌妹 | 洛基 | 冷淡学长 |
+| 马克 | 可爱男童 | 雷神 | 霸道青年 |
+| 名取 | 温润男声 | 贾维斯 | 沉稳高管 |
+| 年糕犬 | 憨憨萌兽 | | |
+
+换到某个角色时它会用自己的声音打个招呼；游戏结果的台词会带上开心 / 沮丧 / 惊讶的语气。
+
+## 英雄皮肤（真实版）
+
+钢铁侠、蜘蛛侠、绿巨人、洛基、雷神，加一个贾维斯风的全息 AI 管家。它们**不是漫威的素材**——是在你自己电脑上、用你的 MiniMax key 让 image-01 按文字描述渲染出来的写实风原创形象（每位三张：待机 / 得意 / 沮丧，绿幕或洋红幕出图，渲染层再把幕布抠掉），仓库和安装包里不含任何图片。第一次选中某位英雄要等两三分钟出图，这期间先显示手绘 Q 版顶着；生成好的图存在 `userData/heroes/`，以后秒开。
+
+真实版会呼吸、悬浮（钢铁侠和贾维斯）、看向鼠标、蹦、落地压扁、转身、被拎着晃；说话和被摸时背后有一层光。反应表里的姿势换成对应的那张图再叠上特效：钢铁侠的冲击波和推进器火花、蜘蛛侠的蛛丝和倒挂、绿巨人的砸地冲击圈加震屏、洛基的分身和绿焰、雷神的天降闪电、贾维斯的算概率光环。没有 MiniMax key 的话，就一直用手绘 Q 版（`renderer/skins/heroes.js`）。
+
+<p align="center"><img src="docs/heroes-sheet.png" width="860" alt="英雄皮肤"></p>
+
+想换成自己找的图：把三张图放到 `userData/heroes/<hero_iron 等>/idle.jpg、win.jpg、lose.jpg`（纯色绿幕或洋红幕背景最好），重新选一次角色就行。
 
 ## 下载安装
 
@@ -136,7 +167,7 @@ npm run dist:mac     # → dist/*.dmg
 npm run dist:win     # → dist/*-setup.exe, *-portable.exe
 ```
 
-CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.2.0`）就会在 macOS 和 Windows 上各打一份。
+CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.3.0`）就会在 macOS 和 Windows 上各打一份。
 
 开发时有几个环境变量方便调试：`MAOTUAN_SHOT=1`（把每个皮肤和面板截图到 `.shots/`）、`MAOTUAN_DEV=1`（详细日志）、`MAOTUAN_DEVCHAT="……"`（启动后自动聊一句）、`MAOTUAN_ICON=1`（把它渲染成应用图标）。外观规范在 `.claude/skills/fluff-art/SKILL.md`。
 
@@ -165,7 +196,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（25 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（24 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

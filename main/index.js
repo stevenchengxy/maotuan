@@ -16,14 +16,16 @@ import { Stt } from "./stt.js";
 import { StoryBook, generateImage } from "./story.js";
 import { Singer } from "./sing.js";
 import { Live2D } from "./live2d.js";
+import { HeroArt } from "./heroart.js";
 import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
+import { HEROES } from "../renderer/skins/heroCatalog.js";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PRELOAD = path.join(ROOT, "renderer", "preload.cjs");
 const IS_MAC = process.platform === "darwin";
-const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ["ani_sakura", "小樱", "二次元女生：粉色双马尾"], ["ani_yuki", "小雪", "二次元女生：银白长发"], ["ani_yuzu", "小柚", "二次元女生：棕色短发"], ["ani_neko", "猫耳娘", "二次元女生：猫耳铃铛"], ["ani_sumi", "小澄", "二次元男生：深蓝乱发耳机"], ["ani_yang", "小阳", "二次元男生：橘色刺猬头"], ["ani_haku", "小白", "二次元男生：白发眼镜"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc])];
+const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc]), ...Object.entries(HEROES).map(([id, h]) => [id, h.name, h.desc])];
 const log = (...a) => console.log("[毛团]", ...a);
 
 // 从 Finder / 开始菜单启动时 PATH 很短，把常见的 node / uvx 位置补上（Agent SDK 要能找到 node）
@@ -43,7 +45,7 @@ fixPath();
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 if (!app.requestSingleInstanceLock()) app.quit();
 
-let store, brain, voice, pet, panel, tray, watcher, live2d, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
+let store, brain, voice, pet, panel, tray, watcher, live2d, heroArt, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
 let bookReading = false;
 let quitting = false, chatting = false, readSentences = [], reading = { active: false }, lastAgent = null, lastAgentAt = 0, petHidden = false;
 const pending = new Map(); let playId = 0;
@@ -65,6 +67,7 @@ async function init() {
   dataDir = app.getPath("userData");
   store = new Store(dataDir);
   if (process.env.MAOTUAN_SKIN && SKIN_LIST.some(([id]) => id === process.env.MAOTUAN_SKIN)) store.patchSettings({ skin: process.env.MAOTUAN_SKIN });
+  if (!SKIN_LIST.some(([id]) => id === store.settings.skin)) store.patchSettings({ skin: "fluff" });   // 皮肤下架了就换回毛团
   toolsServer = {
     command: process.execPath, args: [path.join(ROOT, "mcp", "maotuan-tools.js")],
     env: { ELECTRON_RUN_AS_NODE: "1", MAOTUAN_DATA: dataDir, MAOTUAN_PORT: String(store.settings.watcherPort || 47831), MAOTUAN_NAME: store.get("name") }
@@ -77,7 +80,8 @@ async function init() {
     if (!list.some(v => v.id === store.settings.sayVoice)) { const p = list.find(v => /Tingting|婷婷/i.test(v.id)) || list.find(v => v.lang === "zh_CN") || list[0]; store.patchSettings({ sayVoice: p.id }); }
   });
   live2d = new Live2D({ dir: path.join(dataDir, "live2d"), log, onProgress: p => sendPet("live2d:progress", p) });
-  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), getStatus: () => ({ name: store.get("name"), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
+  heroArt = new HeroArt({ store, dir: path.join(dataDir, "heroes"), log, onProgress: p => sendPet("hero:progress", p) });
+  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), dirs: { heroes: path.join(dataDir, "heroes") }, getStatus: () => ({ name: store.get("name"), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
   watcher.start();
   stt = new Stt({ store, dataDir, log, onProgress: text => sendPanel("stt:progress", { text }) });
   storyBook = new StoryBook({ store, dataDir, brain, log, onProgress: p => sendPanel("book:progress", p) });
@@ -176,7 +180,15 @@ function openBook() {
 function setPetHidden(h) { petHidden = h; if (!pet) return; if (h) { pet.hide(); if (panel) panel.hide(); } else pet.showInactive(); refreshTray(); }
 
 /* ---------------- 菜单 ---------------- */
-function skinMenu() { return SKIN_LIST.map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.skin === id, click: () => { store.patchSettings({ skin: id }); broadcastState(); } })); }
+function skinMenu() { return SKIN_LIST.map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.skin === id, click: () => { store.patchSettings({ skin: id }); broadcastState(); onSkinChanged(id); } })); }
+// 换成有人设的角色：用它自己的声音打个招呼（Live2D 的等模型站好了再说）
+let greetPending = "";
+const charOf = id => L2D_MODELS[id] || HEROES[id] || null;
+function greet(id) {
+  const c = charOf(id); if (!c || !c.greeting || store.settings.muted || store.settings.skin !== id) return;
+  voice.stop(); sendPet("pet:say", { text: c.greeting }); voice.speak(c.greeting, { emotion: "happy" });
+}
+function onSkinChanged(id) { greetPending = ""; if (!charOf(id)) return; if (id.startsWith("l2d_")) greetPending = id; else greet(id); }
 function brainMenu() { return [["claude", "Claude"], ["codex", "Codex"]].map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.brain === id, click: () => { setBrain(id); broadcastState(); } })); }
 function commonMenu() {
   const s = store.settings;
@@ -448,6 +460,47 @@ async function devShots() {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
     for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    if (process.env.MAOTUAN_DEVHERO) {   // "hero_iron" 或 "hero_iron:idle,win"
+      for (const spec of process.env.MAOTUAN_DEVHERO.split(";")) {
+        const [id, ps] = spec.split(":"); const poses = ps ? ps.split(",") : ["idle"];
+        try { const r = await heroArt.ensure(id, poses); log("DEVHERO ok", id, r.poses.join(",")); for (const p of r.poses) fs.copyFileSync(heroArt.file(id, p), path.join(dir, `heroart-${id}-${p}.jpg`)); }
+        catch (e) { log("DEVHERO failed", id, e.message); }
+      }
+    }
+    if (process.env.MAOTUAN_DEVPARAM) {   // "l2d_wanko:PARAM_FACE_01=1;l2d_wanko:PARAM_BOWL_LID=0"
+      const wait = ms => new Promise(r => setTimeout(r, ms)); let last = "";
+      for (const spec of process.env.MAOTUAN_DEVPARAM.split(";")) {
+        const [id, kv] = spec.split(":"); if (!id) continue;
+        if (id !== last) { last = id; store.patchSettings({ skin: id }); sendPet("state", publicState()); await waitL2D(id, 60000); await wait(1200); await shot(pet, `param-${id}-base`); }
+        const params = {}; for (const p of (kv || "").split(",")) { const [k, v] = p.split("="); if (k) params[k.trim()] = Number(v); }
+        sendPet("live2d:play", { params }); await wait(700); await shot(pet, `param-${id}-${Object.keys(params).join("_") || "none"}`); await wait(2200);
+      }
+    }
+    if (process.env.MAOTUAN_DEVREACT) {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const evs = [["rps:win", 650], ["rps:lose", 650], ["dice:win", 550], ["catch:great", 750], ["pet", 500]];
+      for (const [id] of SKIN_LIST) {
+        if (!id.startsWith("l2d_") && !id.startsWith("hero_")) continue;
+        if (process.env.MAOTUAN_DEVREACT !== "1" && !process.env.MAOTUAN_DEVREACT.split(",").includes(id)) continue;
+        store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(900);
+        for (const [ev, ms] of evs) { sendPet("pet:react", { ev }); await wait(ms); await shot(pet, `react-${id}-${ev.replace(":", "_")}`); await wait(2600); }
+      }
+    }
+    if (process.env.MAOTUAN_DEVMOTIONS) {
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      for (const [id] of SKIN_LIST) {
+        if (!id.startsWith("l2d_")) continue;
+        store.patchSettings({ skin: id }); sendPet("state", publicState()); await waitL2D(id, 60000); await wait(800);
+        const info = await new Promise(r => { const t = setTimeout(() => r(null), 3000); ipcMain.once("live2d:info", (_e, d) => { clearTimeout(t); r(d); }); sendPet("live2d:query", {}); });
+        if (!info) { log("DEVMOTIONS no info for", id); continue; }
+        for (const [group, n] of Object.entries(info.motions || {})) {
+          if (group === "Idle" && Object.keys(info.motions).length > 1) continue;
+          for (let i = 0; i < n; i++) { sendPet("live2d:play", { motion: { group, index: i } }); await wait(450); await shot(pet, `motion-${id}-${group}-${i}-a`); await wait(650); await shot(pet, `motion-${id}-${group}-${i}-b`); await wait(1600); }
+        }
+        for (const name of info.expressions || []) { sendPet("live2d:play", { expression: name }); await wait(700); await shot(pet, `exp-${id}-${name}`); }
+        sendPet("live2d:play", { expression: null }); await wait(300);
+      }
+    }
     store.patchSettings({ skin: orig }); sendPet("state", publicState());
     showPanel("chat"); await new Promise(r => setTimeout(r, 1200)); await shot(panel, "panel-chat");
     sendPanel("panel:tab", { tab: "settings" }); await new Promise(r => setTimeout(r, 900)); await shot(panel, "panel-settings");
@@ -552,8 +605,9 @@ function wireIpc() {
   ipcMain.handle("state:get", () => publicState());
   ipcMain.handle("name:set", (_e, { name }) => { store.set("name", (name || "").trim().slice(0, 8) || "毛毛"); toolsServer.env.MAOTUAN_NAME = store.get("name"); if (tray) tray.setToolTip(store.get("name")); broadcastState(); return true; });
   ipcMain.handle("settings:set", (_e, patch) => {
-    const before = { brain: store.settings.brain, hotkey: store.settings.hotkey };
+    const before = { brain: store.settings.brain, hotkey: store.settings.hotkey, skin: store.settings.skin };
     store.patchSettings(patch || {}); voice.lastError = "";
+    if (patch && patch.skin && patch.skin !== before.skin) onSkinChanged(patch.skin);
     if (patch && patch.muted === true) voice.stop();
     if (patch && patch.petScale !== undefined) applyPetSize();
     if (patch && patch.brain && patch.brain !== before.brain) setBrain(patch.brain);
@@ -639,7 +693,11 @@ function wireIpc() {
     try { const r = await live2d.ensure(id); const base = `http://127.0.0.1:${watcher.port}/live2d/`; return { ok: true, url: base + r.dir + "/" + r.file, core: base + "core/live2dcubismcore.min.js" }; }
     catch (e) { log("[live2d] ensure failed", id, e.message); return { ok: false, error: e.message }; }
   });
-  ipcMain.on("live2d:ready", (_e, { id }) => { for (const r of l2dWaiters.get(id) || []) r(); l2dWaiters.delete(id); });
+  ipcMain.handle("hero:ensure", async (_e, { id, poses }) => {
+    try { const r = await heroArt.ensure(id, poses); const base = `http://127.0.0.1:${watcher.port}/heroes/${id}/`; return { ok: true, poses: Object.fromEntries(r.poses.map(p => [p, base + p + ".jpg?v=" + fs.statSync(heroArt.file(id, p)).mtimeMs])) }; }
+    catch (e) { log("[heroart] ensure failed", id, e.message); return { ok: false, error: e.message }; }
+  });
+  ipcMain.on("live2d:ready", (_e, { id }) => { for (const r of l2dWaiters.get(id) || []) r(); l2dWaiters.delete(id); if (greetPending === id) { greetPending = ""; greet(id); } });
   ipcMain.handle("stt:warm", async () => { try { await stt.ensure(); broadcastState(); return { ok: true }; } catch (e) { return { error: e.message }; } });
 
   // 绘本
@@ -670,9 +728,11 @@ function wireIpc() {
   ipcMain.handle("game:catch", () => { enterArena(); voice.stop(); setTimeout(() => sendPet("pet:game", { game: "catch" }), 400); return true; });
   ipcMain.handle("game:stop", () => { sendPet("pet:game", { game: "stop" }); leaveArena(); return true; });
   ipcMain.on("game:over", (_e, d) => {
-    const lines = GAME_LINES[d.game]; let text = "";
-    if (lines) text = lines[d.result] || ""; else if (d.game === "catch") text = d.score >= 25 ? `${d.score} 个！你手好快。` : d.score >= 12 ? `接到 ${d.score} 个，不错。` : `才 ${d.score} 个，再来一局。`;
-    if (text && !store.settings.muted) { voice.stop(); voice.speak(text); }
+    const lines = GAME_LINES[d.game]; let text = d.text || "";
+    if (!text) { if (lines) text = lines[d.result] || ""; else if (d.game === "catch") text = d.score >= 25 ? `${d.score} 个！你手好快。` : d.score >= 12 ? `接到 ${d.score} 个，不错。` : `才 ${d.score} 个，再来一局。`; }
+    // result 是从主人角度说的：主人输 = 它赢
+    const emotion = d.game === "catch" ? (d.score >= 25 ? "happy" : d.score < 12 ? "sad" : "") : d.result === "lose" ? "happy" : d.result === "win" ? "sad" : "surprised";
+    if (text && !store.settings.muted) { voice.stop(); voice.speak(text, { emotion }); }
     sendPanel("game:result", d);
     if (d.game !== "rps") setTimeout(leaveArena, 600);
   });

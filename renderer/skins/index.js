@@ -5,9 +5,11 @@ import { makeGhost } from "./ghost.js";
 import { makeRobot } from "./robot.js";
 import { makePixelSkin } from "./pixelFamily.js";
 import { SPRITES } from "./sprites.js";
-import { makeChibi, CHIBIS } from "./chibi.js";
 import { makeLive2D } from "./live2d.js";
 import { L2D_MODELS } from "./live2dCatalog.js";
+import { makeHero } from "./heroes.js";
+import { makePhotoHero } from "./photoSkin.js";
+import { HEROES } from "./heroCatalog.js";
 
 export const SKINS = {
   fluff: { name: "毛团", make: makeFluff, desc: "羊毛毡的圆毛球，软软的" },
@@ -18,6 +20,6 @@ export const SKINS = {
   robot: { name: "小机器人", make: makeRobot, desc: "小铁盒，脸是屏幕，眼睛是两道青光" }
 };
 for (const [id, sp] of Object.entries(SPRITES)) if (id !== "blob") SKINS[id] = { name: sp.name, make: makePixelSkin(id), desc: sp.desc };
-for (const [id, c] of Object.entries(CHIBIS)) SKINS[id] = { name: c.name, make: makeChibi(c), desc: c.desc };
 for (const [id, m] of Object.entries(L2D_MODELS)) SKINS[id] = { name: m.name, make: makeLive2D(id), desc: m.desc };
+for (const [id, h] of Object.entries(HEROES)) SKINS[id] = { name: h.name, make: makePhotoHero(id, makeHero(id)), desc: h.desc };
 export function makeSkin(id, canvas, opts) { const s = SKINS[id] || SKINS.fluff; return s.make(canvas, opts); }

@@ -89,6 +89,7 @@ mt.on("pet:talking", ({ talking }) => { fluff.S.talking = talking; if (!talking)
 mt.on("pet:pet", () => { fluff.poke(); happyFor(1500); showBubble(pick(PET_LINES)); mt.send("pet:petted"); });
 mt.on("pet:back", ({ mins }) => { fluff.setMood("happy"); fluff.spawn("heart", 2); showBubble(backLine(mins)); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 3000); });
 mt.on("pet:land", ({ k }) => { fluff.land(k || 1); });
+mt.on("pet:react", ({ ev, ctx }) => react(ev, ctx || {}));   // 开发用 / 主进程触发角色反应
 mt.on("pet:agent", ({ text }) => { fluff.S.hop = 1.0001; fluff.setMood("happy"); fluff.spawn("heart", 4); showBubble(text, { type: true }); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 4000); });
 mt.on("voice:play", playAudio);
 
@@ -178,7 +179,7 @@ function release() {
     if (old && last && last !== old) {
       const dt = Math.max(0.016, (last.t - old.t) / 1000);
       const vx = (last.x - old.x) / dt, vy = (last.y - old.y) / dt;
-      if (Math.hypot(vx, vy) > 900) { mt.send("pet:throw", { vx, vy }); showBubble(pick(["哇——！", "飞、飞起来了！", "呜哇！"])); return; }
+      if (Math.hypot(vx, vy) > 900) { react("throw"); mt.send("pet:throw", { vx, vy }); showBubble(pick(["哇——！", "飞、飞起来了！", "呜哇！"])); return; }
     }
     mt.send("pet:dragend"); fluff.land(0.5);
     setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 800);
@@ -220,6 +221,10 @@ const HANDS = ["✊", "✋", "✌️"], HN = ["石头", "布", "剪刀"];
 function stageCenter() { const r = stage.getBoundingClientRect(); const g = fluff.geometry(); return { x: r.left + g.cx, y: r.top + g.cy, R: g.R, ground: r.top + g.cy + g.R * 0.95 }; }
 function pop(text, x, y, { size = 44, life = 2.4, delay = 0, rise = 0 } = {}) { fxItems.push({ type: "pop", text, x, y, size, life, t: -delay, rise }); }
 function hopPet() { fluff.S.hop = 1.0001; }
+// 有反应表的皮肤（Live2D 角色、英雄）自己决定怎么庆祝 / 怎么沮丧；没有的走下面的通用动作
+function react(ev, c) { if (typeof fluff.react === "function") { try { fluff.react(ev, c); } catch (e) { console.warn("react", ev, e); } return true; } return false; }
+function lineFor(game, key, vars) { const t = fluff.lines && fluff.lines[game] && fluff.lines[game][key]; return t ? t.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "") : null; }
+function toStageXY(x, y) { const r = stage.getBoundingClientRect(); return { x: x - r.left, y: y - r.top }; }
 
 // 猜拳：喊三声、蹦三下、两只手弹出来、看结果
 function playRps({ me, it, result }) {
@@ -230,35 +235,46 @@ function playRps({ me, it, result }) {
     pop(HANDS[me], c.x - c.R * 1.7, c.y - c.R * 0.3, { size: 52 });
     pop(HANDS[it], c.x + c.R * 1.7, c.y - c.R * 0.3, { size: 52 });
     pop("VS", c.x, c.y - c.R * 1.5, { size: 20, life: 1.6 });
+    react("rps:reveal");
   }, 1300);
   setTimeout(() => {
-    if (result === "win") { fluff.land(0.8); fluff.setMood("thinking"); pop("😖", c.x, c.y - c.R * 1.6, { size: 34, life: 2 }); showBubble(`我出${HN[it]}……你赢了。哼，再来。`, { type: true }); }
-    else if (result === "lose") { hopPet(); fluff.setMood("happy"); fluff.spawn("heart", 6); pop("🎉", c.x, c.y - c.R * 1.6, { size: 34, life: 2 }); showBubble(`我出${HN[it]}，我赢啦！`, { type: true }); }
-    else { fluff.spin(); pop("=", c.x, c.y - c.R * 1.6, { size: 30, life: 1.6 }); showBubble(`我也出${HN[it]}，平了！`, { type: true }); }
-    setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "rps", me, it, result }); }, 2200);
+    const mine = result === "win" ? "lose" : result === "lose" ? "win" : "tie";   // 从它自己的角度看
+    const text = lineFor("rps", mine, { it: HN[it], me: HN[me] }) || (mine === "lose" ? `我出${HN[it]}……你赢了。哼，再来。` : mine === "win" ? `我出${HN[it]}，我赢啦！` : `我也出${HN[it]}，平了！`);
+    if (mine === "win") fluff.setMood("happy"); else if (mine === "lose") fluff.setMood("thinking");
+    if (!react("rps:" + mine)) {
+      if (mine === "lose") { fluff.land(0.8); pop("😖", c.x, c.y - c.R * 1.6, { size: 34, life: 2 }); }
+      else if (mine === "win") { hopPet(); fluff.spawn("heart", 6); pop("🎉", c.x, c.y - c.R * 1.6, { size: 34, life: 2 }); }
+      else { fluff.spin(); pop("=", c.x, c.y - c.R * 1.6, { size: 30, life: 1.6 }); }
+    }
+    showBubble(text, { type: true });
+    setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "rps", me, it, result, text }); }, 2200);
   }, 2400);
 }
 
 // 骰子：它把骰子甩出去，骰子翻着跟头落地弹两下；你的点数在左边弹出来
 function playDice({ me, it }) {
   const c = stageCenter();
-  hopPet(); showBubble("看我的！", { type: false, hold: true });
+  hopPet(); react("dice:start"); showBubble("看我的！", { type: false, hold: true });
   pop(String(me), c.x - c.R * 1.9, c.y - c.R * 0.2, { size: 40, life: 4.5, delay: 0.3 });
   fxItems.push({ type: "die", x: c.x + c.R * 0.6, y: c.y - c.R * 0.6, vx: 190, vy: -260, rot: 0, vrot: 14, face: 1 + Math.floor(Math.random() * 6), final: it, ground: c.ground - 4, bounces: 0, t: 0, done: false, size: Math.max(26, c.R * 0.42) });
 }
 function finishDice(d) {
   const win = d.me > d.it, tie = d.me === d.it;
-  if (tie) { fluff.spin(); showBubble(`都是 ${d.it} 点，平了！`, { type: true }); }
-  else if (win) { fluff.land(0.8); fluff.setMood("thinking"); showBubble(`我 ${d.it} 点，你 ${d.me} 点……你赢了。`, { type: true }); }
-  else { hopPet(); fluff.setMood("happy"); fluff.spawn("heart", 5); showBubble(`我 ${d.it} 点，你 ${d.me} 点，我赢啦！`, { type: true }); }
-  setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "dice", me: d.me, it: d.it, result: tie ? "tie" : win ? "win" : "lose" }); }, 2200);
+  const mine = tie ? "tie" : win ? "lose" : "win";
+  const text = lineFor("dice", mine, { it: d.it, me: d.me }) || (tie ? `都是 ${d.it} 点，平了！` : win ? `我 ${d.it} 点，你 ${d.me} 点……你赢了。` : `我 ${d.it} 点，你 ${d.me} 点，我赢啦！`);
+  if (mine === "win") fluff.setMood("happy"); else if (mine === "lose") fluff.setMood("thinking");
+  if (!react("dice:" + mine)) {
+    if (tie) fluff.spin(); else if (win) fluff.land(0.8); else { hopPet(); fluff.spawn("heart", 5); }
+  }
+  showBubble(text, { type: true });
+  setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "dice", me: d.me, it: d.it, result: tie ? "tie" : win ? "win" : "lose", text }); }, 2200);
 }
 
 // 接豆子：豆子从上面掉下来，你用鼠标挪它手里的小篮子
 function startCatch() {
   const c = stageCenter();
   game = { kind: "catch", score: 0, miss: 0, t: 0, end: 30, spawn: 0, items: [], bx: c.x, by: c.ground - 6, last: performance.now() };
-  fluff.setMood("happy"); showBubble("来了来了！", { type: false });
+  fluff.setMood("happy"); react("catch:start"); showBubble("来了来了！", { type: false });
   hud.style.display = "block";
 }
 function catchTick(dt, now) {
@@ -266,8 +282,8 @@ function catchTick(dt, now) {
   g.t += dt; g.spawn -= dt; g.by = c.ground - 6;
   if (g.spawn <= 0) { g.spawn = Math.max(0.35, 0.95 - g.t * 0.015); g.items.push({ x: 24 + Math.random() * (W - 48), y: -12, v: 110 + Math.random() * 60 + g.t * 3, e: ["🍬", "🍪", "🍓", "🍡", "🧀", "🥕"][Math.floor(Math.random() * 6)] }); }
   for (const it of g.items) it.y += it.v * dt;
-  for (const it of g.items) { if (!it.done && Math.abs(it.x - g.bx) < 30 && Math.abs(it.y - g.by) < 18) { it.done = true; g.score++; if (g.score % 5 === 0) { hopPet(); fluff.spawn("heart", 2); } pop("+1", it.x, it.y - 10, { size: 16, life: 0.8, rise: 30 }); } }
-  g.items = g.items.filter(it => { if (it.done) return false; if (it.y > H + 10) { g.miss++; fluff.S.pet.amt = 0.3; return false; } return true; });
+  for (const it of g.items) { if (!it.done && Math.abs(it.x - g.bx) < 30 && Math.abs(it.y - g.by) < 18) { it.done = true; g.score++; react("catch:get", toStageXY(it.x, it.y)); if (g.score % 5 === 0 && !react("catch:five")) { hopPet(); fluff.spawn("heart", 2); } pop("+1", it.x, it.y - 10, { size: 16, life: 0.8, rise: 30 }); } }
+  g.items = g.items.filter(it => { if (it.done) return false; if (it.y > H + 10) { g.miss++; fluff.S.pet.amt = 0.3; react("catch:miss"); return false; } return true; });
   hud.textContent = `接到 ${g.score}　漏了 ${g.miss}/3　${Math.max(0, Math.ceil(g.end - g.t))}s`;
   // 画
   fx.font = "24px -apple-system, 'Apple Color Emoji', 'Segoe UI Emoji'"; fx.textAlign = "center"; fx.textBaseline = "middle";
@@ -275,9 +291,12 @@ function catchTick(dt, now) {
   fx.font = "40px -apple-system, 'Apple Color Emoji', 'Segoe UI Emoji'"; fx.fillText("🧺", g.bx, g.by + 6);
   if (g.miss >= 3 || g.t >= g.end) {
     const sc = g.score; game = null; hud.style.display = "none";
-    if (sc >= 25) { hopPet(); fluff.spawn("heart", 8); fluff.setMood("happy"); } else if (sc < 12) { fluff.land(0.6); fluff.setMood("thinking"); }
-    showBubble(sc >= 25 ? `${sc} 个！你手好快，我看花眼了。` : sc >= 12 ? `接到 ${sc} 个，不错不错，分我一个？` : `才 ${sc} 个……没关系，再来一局。`, { type: true });
-    setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "catch", score: sc }); }, 2400);
+    const tier = sc >= 25 ? "great" : sc >= 12 ? "ok" : "bad";
+    if (tier === "great") fluff.setMood("happy"); else if (tier === "bad") fluff.setMood("thinking");
+    if (!react("catch:" + tier)) { if (tier === "great") { hopPet(); fluff.spawn("heart", 8); } else if (tier === "bad") fluff.land(0.6); }
+    const text = lineFor("catch", tier, { n: sc }) || (tier === "great" ? `${sc} 个！你手好快，我看花眼了。` : tier === "ok" ? `接到 ${sc} 个，不错不错，分我一个？` : `才 ${sc} 个……没关系，再来一局。`);
+    showBubble(text, { type: true });
+    setTimeout(() => { fluff.setMood("idle"); mt.send("game:over", { game: "catch", score: sc, text }); }, 2400);
   }
 }
 document.addEventListener("pointermove", e => { if (game && game.kind === "catch") game.bx = Math.max(24, Math.min(window.innerWidth - 24, e.clientX)); });
