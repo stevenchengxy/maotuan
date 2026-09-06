@@ -15,13 +15,15 @@ import { splitSentences, SentenceBuffer } from "./text.js";
 import { Stt } from "./stt.js";
 import { StoryBook, generateImage } from "./story.js";
 import { Singer } from "./sing.js";
+import { Live2D } from "./live2d.js";
+import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PRELOAD = path.join(ROOT, "renderer", "preload.cjs");
 const IS_MAC = process.platform === "darwin";
-const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ["ani_sakura", "小樱", "二次元女生：粉色双马尾"], ["ani_yuki", "小雪", "二次元女生：银白长发"], ["ani_yuzu", "小柚", "二次元女生：棕色短发"], ["ani_neko", "猫耳娘", "二次元女生：猫耳铃铛"], ["ani_sumi", "小澄", "二次元男生：深蓝乱发耳机"], ["ani_yang", "小阳", "二次元男生：橘色刺猬头"], ["ani_haku", "小白", "二次元男生：白发眼镜"]];
+const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ["ani_sakura", "小樱", "二次元女生：粉色双马尾"], ["ani_yuki", "小雪", "二次元女生：银白长发"], ["ani_yuzu", "小柚", "二次元女生：棕色短发"], ["ani_neko", "猫耳娘", "二次元女生：猫耳铃铛"], ["ani_sumi", "小澄", "二次元男生：深蓝乱发耳机"], ["ani_yang", "小阳", "二次元男生：橘色刺猬头"], ["ani_haku", "小白", "二次元男生：白发眼镜"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc])];
 const log = (...a) => console.log("[毛团]", ...a);
 
 // 从 Finder / 开始菜单启动时 PATH 很短，把常见的 node / uvx 位置补上（Agent SDK 要能找到 node）
@@ -41,7 +43,7 @@ fixPath();
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 if (!app.requestSingleInstanceLock()) app.quit();
 
-let store, brain, voice, pet, panel, tray, watcher, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
+let store, brain, voice, pet, panel, tray, watcher, live2d, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
 let bookReading = false;
 let quitting = false, chatting = false, readSentences = [], reading = { active: false }, lastAgent = null, lastAgentAt = 0, petHidden = false;
 const pending = new Map(); let playId = 0;
@@ -62,6 +64,7 @@ async function init() {
   if (IS_MAC && app.dock) app.dock.hide();
   dataDir = app.getPath("userData");
   store = new Store(dataDir);
+  if (process.env.MAOTUAN_SKIN && SKIN_LIST.some(([id]) => id === process.env.MAOTUAN_SKIN)) store.patchSettings({ skin: process.env.MAOTUAN_SKIN });
   toolsServer = {
     command: process.execPath, args: [path.join(ROOT, "mcp", "maotuan-tools.js")],
     env: { ELECTRON_RUN_AS_NODE: "1", MAOTUAN_DATA: dataDir, MAOTUAN_PORT: String(store.settings.watcherPort || 47831), MAOTUAN_NAME: store.get("name") }
@@ -73,7 +76,8 @@ async function init() {
     if (!list.length) return;
     if (!list.some(v => v.id === store.settings.sayVoice)) { const p = list.find(v => /Tingting|婷婷/i.test(v.id)) || list.find(v => v.lang === "zh_CN") || list[0]; store.patchSettings({ sayVoice: p.id }); }
   });
-  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, getStatus: () => ({ name: store.get("name"), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
+  live2d = new Live2D({ dir: path.join(dataDir, "live2d"), log, onProgress: p => sendPet("live2d:progress", p) });
+  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), getStatus: () => ({ name: store.get("name"), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
   watcher.start();
   stt = new Stt({ store, dataDir, log, onProgress: text => sendPanel("stt:progress", { text }) });
   storyBook = new StoryBook({ store, dataDir, brain, log, onProgress: p => sendPanel("book:progress", p) });
@@ -433,13 +437,17 @@ async function singSong(theme) {
   } finally { singing = false; }
 }
 
+const l2dWaiters = new Map();
+function waitL2D(id, ms) { return new Promise(r => { const t = setTimeout(r, ms); l2dWaiters.set(id, [...(l2dWaiters.get(id) || []), () => { clearTimeout(t); setTimeout(r, 900); }]); }); }
+
 /* ---------------- 开发用 ---------------- */
 async function devShots() {
   const dir = path.join(ROOT, ".shots"); fs.mkdirSync(dir, { recursive: true });
   const shot = async (win, name) => { const img = await win.webContents.capturePage(); fs.writeFileSync(path.join(dir, name + ".png"), img.toPNG()); };
   try {
     const orig = store.settings.skin;
-    for (const [id] of SKIN_LIST) { store.patchSettings({ skin: id }); sendPet("state", publicState()); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    const only = process.env.MAOTUAN_SHOT_ONLY || "";
+    for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
     store.patchSettings({ skin: orig }); sendPet("state", publicState());
     showPanel("chat"); await new Promise(r => setTimeout(r, 1200)); await shot(panel, "panel-chat");
     sendPanel("panel:tab", { tab: "settings" }); await new Promise(r => setTimeout(r, 900)); await shot(panel, "panel-settings");
@@ -627,6 +635,11 @@ function wireIpc() {
     try { const arr = pcm instanceof Float32Array ? pcm : new Float32Array(pcm); const text = await stt.transcribe(arr); return { text }; }
     catch (e) { return { error: e.message || String(e) }; }
   });
+  ipcMain.handle("live2d:ensure", async (_e, { id }) => {
+    try { const r = await live2d.ensure(id); const base = `http://127.0.0.1:${watcher.port}/live2d/`; return { ok: true, url: base + r.dir + "/" + r.file, core: base + "core/live2dcubismcore.min.js" }; }
+    catch (e) { log("[live2d] ensure failed", id, e.message); return { ok: false, error: e.message }; }
+  });
+  ipcMain.on("live2d:ready", (_e, { id }) => { for (const r of l2dWaiters.get(id) || []) r(); l2dWaiters.delete(id); });
   ipcMain.handle("stt:warm", async () => { try { await stt.ensure(); broadcastState(); return { ok: true }; } catch (e) { return { error: e.message }; } });
 
   // 绘本

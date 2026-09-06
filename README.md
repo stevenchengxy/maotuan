@@ -13,6 +13,7 @@
   <img src="docs/pet-jelly.png" width="150" alt="水母">
   <img src="docs/game-dice.png" width="300" alt="比大小">
 </p>
+<p align="center"><img src="docs/live2d-sheet.png" width="860" alt="二次元 Live2D 角色：日和、春、莱丝、真绪、马克、名取、年糕犬"></p>
 <p align="center"><img src="docs/chibi-sheet.png" width="860" alt="二次元 Q 版角色：小樱、小雪、小柚、猫耳娘、小澄、小阳、小白"></p>
 
 ---
@@ -30,12 +31,20 @@
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
 | **盯着你的 AI** | Claude Code 或 Codex 跑完一轮、或在等你确认时，它蹦起来叫你 |
-| **18 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；二次元 Q 版：小樱、小雪、小柚、猫耳娘、小澄、小阳、小白 |
+| **25 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；Q 版：小樱、小雪、小柚、猫耳娘、小澄、小阳、小白；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬（见下） |
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
   <img src="docs/comic.jpg" width="300" alt="四格漫画">
 </p>
+
+## 二次元角色（Live2D）
+
+除了手绘、像素和 Q 版皮肤，毛团还能变成真正的二次元立绘角色：**桃濑日和、春、莱丝、虹色真绪**（女生），**马克君、名取仁**（男生），外加一只**年糕犬**。它们是 Live2D 官方免费发布的示例模型，毛团用 Cubism Core + [pixi-live2d-display](https://github.com/guansss/pixi-live2d-display) 在透明窗口里实时渲染：眨眼、呼吸、头发和裙摆的物理、待机小动作、被摸时的反应动作都是模型自带的；看向鼠标、说话张嘴（跟着 MiniMax 的声音）、被摸脸红、困了闭眼、被拎起来晃、蹦跳、转圈、桌面小游戏是毛团接上去的。右键它 → 换个样子，或 设置 → 它的名字和样子。
+
+- 第一次选中某个角色，会从 Live2D 官方 GitHub（失败则走 jsDelivr 镜像）把模型下到本机 `userData/live2d/`，每个 3–10 MB；引擎 Cubism Core 从 Live2D 官方 CDN 取。仓库和安装包里都不含这些文件，下载时它站的地方会显示进度。
+- 版权：角色模型 © Live2D Inc.，按 [Live2D Free Material License](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html) 和[示例数据使用条款](https://www.live2d.com/eula/live2d-sample-model-terms_en.html)使用；名取仁是协作角色，仅限非商用。This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc.
+- 想接别的 Live2D 模型（Cubism 3 / 4 的 `.moc3`）：在 `renderer/skins/live2dCatalog.js` 加一条（目录名、model3.json 文件名、缩放），模型文件放进 `userData/live2d/<目录>/` 并在里面放一个空的 `.complete` 文件即可。
 
 ## 下载安装
 
@@ -127,7 +136,7 @@ npm run dist:mac     # → dist/*.dmg
 npm run dist:win     # → dist/*-setup.exe, *-portable.exe
 ```
 
-CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.1.1`）就会在 macOS 和 Windows 上各打一份。
+CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.2.0`）就会在 macOS 和 Windows 上各打一份。
 
 开发时有几个环境变量方便调试：`MAOTUAN_SHOT=1`（把每个皮肤和面板截图到 `.shots/`）、`MAOTUAN_DEV=1`（详细日志）、`MAOTUAN_DEVCHAT="……"`（启动后自动聊一句）、`MAOTUAN_ICON=1`（把它渲染成应用图标）。外观规范在 `.claude/skills/fluff-art/SKILL.md`。
 
@@ -156,7 +165,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（18 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（25 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

@@ -6,13 +6,14 @@ import os from "node:os";
 // 毛团的小耳朵：本机一个很小的 HTTP 口，Claude Code / Codex 的钩子跑完了就来敲一下；
 // 别的程序（WorkBuddy、脚本）也能通过它让毛团说话。
 export class Watcher {
-  constructor({ port = 47831, log = console.log, onEvent, getStatus }) {
-    this.port = port; this.log = log; this.onEvent = onEvent; this.getStatus = getStatus; this.server = null;
+  constructor({ port = 47831, log = console.log, onEvent, getStatus, staticDir = "" }) {
+    this.port = port; this.log = log; this.onEvent = onEvent; this.getStatus = getStatus; this.server = null; this.staticDir = staticDir;
   }
   start() {
     this.server = http.createServer((req, res) => {
       const u = new URL(req.url, "http://127.0.0.1");
       const cors = { "Access-Control-Allow-Origin": "*", "Content-Type": "application/json; charset=utf-8" };
+      if ((req.method === "GET" || req.method === "HEAD") && u.pathname.startsWith("/live2d/") && this.staticDir) { this.serveStatic(u.pathname.slice(8), req, res); return; }
       if (req.method === "GET" && u.pathname === "/status") { res.writeHead(200, cors); res.end(JSON.stringify(this.getStatus ? this.getStatus() : {})); return; }
       if (req.method !== "POST") { res.writeHead(404, cors); res.end("{}"); return; }
       let body = "";
@@ -39,6 +40,18 @@ export class Watcher {
     this.server.listen(this.port, "127.0.0.1", () => this.log("watcher listening on", this.port));
   }
   stop() { try { this.server && this.server.close(); } catch {} }
+  // 给渲染层送 Live2D 模型文件（只认 userData/live2d 底下的东西）
+  serveStatic(rel, req, res) {
+    const cors = { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-cache" };
+    let file = "";
+    try { const safe = path.normalize(decodeURIComponent(rel)).replace(/^([\\/]|\.\.[\\/])+/, ""); file = path.join(this.staticDir, safe); } catch { file = ""; }
+    const root = path.resolve(this.staticDir) + path.sep;
+    if (!file || !path.resolve(file).startsWith(root) || !fs.existsSync(file) || !fs.statSync(file).isFile()) { res.writeHead(404, cors); res.end(); return; }
+    const types = { ".json": "application/json", ".moc3": "application/octet-stream", ".png": "image/png", ".jpg": "image/jpeg", ".js": "application/javascript", ".wav": "audio/wav", ".mp3": "audio/mpeg" };
+    res.writeHead(200, { ...cors, "Content-Type": types[path.extname(file).toLowerCase()] || "application/octet-stream", "Content-Length": fs.statSync(file).size });
+    if (req.method === "HEAD") { res.end(); return; }
+    fs.createReadStream(file).pipe(res);
+  }
 
   // ---- 钩子安装（只在用户点了按钮之后才会跑）----
   claudeHookCommand() {
