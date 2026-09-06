@@ -10,8 +10,8 @@
     "start": "electron .",
     "dist": "electron-builder --mac",
     "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win",
-    "dist:all": "electron-builder -mw"
+    "dist:win": "electron-builder --win --x64",
+    "dist:all": "electron-builder --mac --win --x64"
   },
   "build": {
     "appId": "com.chengxiyan.maotuan",
@@ -43,8 +43,18 @@
     },
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "icon": "assets/icon.png",
       "artifactName": "maotuan-${version}-${os}-${arch}.${ext}"
