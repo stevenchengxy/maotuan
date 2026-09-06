@@ -9,6 +9,7 @@ description: 毛团（桌面小宠物）的外观规范与打磨流程。改它�
 
 - 手绘（矢量）：`fluff.js` 毛团（下面这份规范主要说它）、`jelly.js` 水母、`slime.js` 史莱姆、`ghost.js` 小幽灵、`robot.js` 小机器人。后三个基于 `vectorBase.js`（共用状态机 / 眨眼 / 小动作 / 粒子 / 脸部件），只写身体和脸。
 - 像素：`pixelFamily.js` 引擎 + `sprites.js` 图纸。`blob` 是照着用户给的参考图做的：平涂紫色 `#8360F7`、两个 2×2 的黑方块眼睛、平时没有嘴、没有腮红、**没有方框**（用户明确不要方框）。其它像素图纸：pjelly / pcat / pghost / probot / pslime。嘴只在说话、打哈欠时出现。
+- 二次元 Q 版：`chibi.js`。`makeChibi(def)` 是基于 `vectorBase.js` 的两头身引擎，`CHIBIS` 里放 7 个角色定义（小樱 / 小雪 / 小柚 / 猫耳娘 / 小澄 / 小阳 / 小白）：发型 twin / long / bob / spiky / messy，刘海 straight / side / messy，配饰 bow / clip / glasses / headphones / catears / choker / collar / bandage / sailor / stripe / vest / hoodie。眼睛统一走 `animeEye()`：虹膜渐变 + 瞳孔 + 两点高光 + 粗睫毛（女生多一根外翘睫毛）；手臂有一圈深色描边，白衣服在浅色桌面上才看得见。加角色只要在 `CHIBIS` 加一条定义，再登记到 `main/index.js` 的 `SKIN_LIST` 和 `main/persona.js` 的皮肤描述。
 
 交互动画（所有皮肤都要响应）：摸 = 毛/格子/涟漪 + 爱心；抱走 = 脚晃、表情开心；甩出去 = 主进程做抛物线和弹跳，落地时 `land(k)` 压扁；双击 = `spin()`；AI 跑完 = 蹦一下 + 爱心 + 气泡。
 

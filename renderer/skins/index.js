@@ -5,6 +5,7 @@ import { makeGhost } from "./ghost.js";
 import { makeRobot } from "./robot.js";
 import { makePixelSkin } from "./pixelFamily.js";
 import { SPRITES } from "./sprites.js";
+import { makeChibi, CHIBIS } from "./chibi.js";
 
 export const SKINS = {
   fluff: { name: "毛团", make: makeFluff, desc: "羊毛毡的圆毛球，软软的" },
@@ -15,4 +16,5 @@ export const SKINS = {
   robot: { name: "小机器人", make: makeRobot, desc: "小铁盒，脸是屏幕，眼睛是两道青光" }
 };
 for (const [id, sp] of Object.entries(SPRITES)) if (id !== "blob") SKINS[id] = { name: sp.name, make: makePixelSkin(id), desc: sp.desc };
+for (const [id, c] of Object.entries(CHIBIS)) SKINS[id] = { name: c.name, make: makeChibi(c), desc: c.desc };
 export function makeSkin(id, canvas, opts) { const s = SKINS[id] || SKINS.fluff; return s.make(canvas, opts); }
