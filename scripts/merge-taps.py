@@ -111,6 +111,15 @@ def main():
             acts = ensure_first_frame(sid, f"tap{i}", check_actions(sid, f"tap{i}", t.get("actions"), inv))
             if acts: taps.append({"note": t.get("note", ""), "actions": acts})
         entry = {"taps": taps, "tapLines": [l for l in (sk.get("lines") or []) if l and len(l) <= 16]}
+        scenes = {}
+        for ev, v in (sk.get("scenes") or {}).items():
+            acts = v.get("actions") if isinstance(v, dict) else v
+            acts = check_actions(sid, ev.replace("scene:", ""), acts, inv)
+            if acts: scenes[ev] = {"note": (v.get("note", "") if isinstance(v, dict) else ""), "actions": acts}
+        if scenes: entry["scenes"] = scenes
+        sl = {k: v for k, v in (sk.get("sceneLines") or {}).items() if v}
+        if sl: entry["sceneLines"] = sl
+        if sk.get("vocabulary"): entry["vocabulary"] = sk["vocabulary"]
         mt = sk.get("manyTap") or {}
         macts = check_actions(sid, "many", mt.get("actions"), inv)
         if macts: entry["manyTap"] = {"note": mt.get("note", ""), "actions": macts}
@@ -119,7 +128,7 @@ def main():
     order = ["fluff","jelly","slime","ghost","robot","blob","pjelly","pcat","pghost","probot","pslime",
              "l2d_hiyori","l2d_haru","l2d_rice","l2d_mao","l2d_mark","l2d_natori","l2d_wanko"]
     keys = [k for k in order if k in table] + [k for k in table if k not in order]
-    lines = ["// 点它一下的反应：每个角色几个变体轮着来，连点五下有特殊反应。",
+    lines = ["// 点它一下的反应 + 场景反应（换样子、主人回来、发呆、在想、跑完了、吃文件、深夜、在听你说话）。",
              "// 这张表由 scripts/merge-taps.py 生成 + 校验（特效名、粒子、锚点、Live2D 动作/表情/参数都对着真模型查过）。",
              "export const TAPS = {"]
     for k in keys:
@@ -131,6 +140,13 @@ def main():
             lines.append("      { actions: " + json.dumps(t["actions"], ensure_ascii=False) + " },")
         lines.append("    ],")
         lines.append("    tapLines: " + json.dumps(e["tapLines"], ensure_ascii=False) + ",")
+        if e.get("scenes"):
+            lines.append("    scenes: {")
+            for ev, sc in e["scenes"].items():
+                if sc.get("note"): lines.append("      // " + ev + "：" + sc["note"])
+                lines.append("      " + json.dumps(ev, ensure_ascii=False) + ": { actions: " + json.dumps(sc["actions"], ensure_ascii=False) + " },")
+            lines.append("    },")
+        if e.get("sceneLines"): lines.append("    sceneLines: " + json.dumps(e["sceneLines"], ensure_ascii=False) + ",")
         if e.get("manyTap"):
             lines.append("    // 连点：" + e["manyTap"]["note"].removeprefix("连点：").strip())
             lines.append("    manyTap: { actions: " + json.dumps(e["manyTap"]["actions"], ensure_ascii=False) + " },")

@@ -9,6 +9,8 @@ export function expandTaps(def) {
   const react = { ...(def.react || {}) };
   (def.taps || []).forEach((t, i) => { if (t && t.actions) react["tap:" + i] = t.actions; });
   if (def.manyTap && def.manyTap.actions) react["tap:many"] = def.manyTap.actions;
+  // 场景反应：scene:greet / scene:back / scene:bored / scene:think / scene:done / scene:feed / scene:night / scene:listen
+  for (const [ev, v] of Object.entries(def.scenes || {})) { const acts = Array.isArray(v) ? v : (v && v.actions); if (acts && acts.length) react[ev] = acts; }
   return react;
 }
 export const tapCount = def => ((def && def.taps) || []).length;

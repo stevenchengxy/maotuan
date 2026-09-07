@@ -6,7 +6,7 @@
 
 <p align="center">一团住在桌面上的 AI 小伙伴。<br>
 摸它会开心，抱起来腿会晃，甩出去会飞；会聊天、讲故事、读书给你听、画画、哼歌、陪你玩，还会盯着你的 Claude Code / Codex，跑完了来叫你。<br>
-<sub>A fluffy desktop companion for macOS &amp; Windows, powered by Claude Agent SDK / OpenAI Codex SDK, MiniMax voice &amp; images, local Whisper, and MCP.</sub></p>
+<sub>A fluffy desktop companion for macOS &amp; Windows, powered by the OpenAI Codex SDK, MiniMax voice &amp; images, local Whisper, and MCP.</sub></p>
 
 <p align="center">
   <img src="docs/pet-blob.png" width="150" alt="像素团">
@@ -29,7 +29,7 @@
 | **唱歌** | 它自己写词，用自己的声音配着一段小旋律哼给你听 |
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
-| **盯着你的 AI** | Claude Code 或 Codex 跑完一轮、或在等你确认时，它蹦起来叫你 |
+| **盯着你的 AI** | Codex（或 Claude Code）跑完一轮、或在等你确认时，它蹦起来叫你 |
 | **18 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬（见下，每位有自己的名字、反应、台词和音色） |
 
 <p align="center">
@@ -81,6 +81,14 @@ Live2D 角色说话用自己的 MiniMax 音色（设置 → 声音 里可以关�
 
 打开后它出现在屏幕右下角；菜单栏 / 托盘里有个 🧶，退出也在那里。
 
+## 让 Codex 去干活
+
+「玩」标签页里有一张卡片：选一个文件夹，写一句要它做的事（比如「把 README 里的安装步骤更新成最新的命令」），点开工。它会在那个文件夹里真的动手——读文件、跑命令、改代码——每一步都在下面滚动显示，干完了跳出来叫你，并报告改了什么、用了几步几秒。
+
+- 权限在 设置 → 脑子 里选：**能改这个文件夹里的文件**（默认）或**只让它看，不许改**。它只能碰你选的那个文件夹。
+- 干活期间它会做「在想事情」的动作，干完做「报喜」的动作，两个都跟着当前的角色走。
+- 想中途停就点「停下」。
+
 ## 怎么跟它玩
 
 **点它不会弹窗。** 点一下就是逗它玩：每个角色有三四种不同的反应轮着来，连着点还会有"别戳了"的特殊反应，台词也是它自己的口气。要说话，用下面任意一种：
@@ -105,14 +113,11 @@ Live2D 角色说话用自己的 MiniMax 音色（设置 → 声音 里可以关�
 
 第一次打开会有四步向导：起名字、选样子 → 接脑子 → 接声音 → 玩法。之后设置里可以「再看一遍」。
 
-### 1. 脑子（二选一，不需要 API key）
+### 1. 脑子：Codex（不需要 API key）
 
-| | 用什么登录 | 怎么弄 |
-|---|---|---|
-| **Codex**（默认） | 你电脑上的 `codex login` | 装 [Codex CLI](https://github.com/openai/codex)：`npm i -g @openai/codex`，终端里跑 `codex login` 登录 ChatGPT 账号 |
-| **Claude** | 你电脑上的 Claude Code 登录 | 装 [Claude Code](https://code.claude.com)：`npm i -g @anthropic-ai/claude-code`，终端里打 `claude` → 输入 `/login`。也可以 `claude setup-token` 生成长期令牌贴进设置 |
+装 [Codex CLI](https://github.com/openai/codex)：`npm i -g @openai/codex`，终端里跑一次 `codex login` 登录 ChatGPT 账号，就好了。毛团用的是你这份登录，不需要另外的 API key（想用 OpenAI 的 key 计费也可以，在设置里填）。
 
-两个脑子共用同一份人设、同一本小本子、同一批工具。它说「脑子没接上」，几乎都是没登录。
+它说「脑子没接上」，几乎都是没登录。
 
 ### 2. 声音（MiniMax）
 
@@ -187,11 +192,11 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 - 所有东西都在本机：macOS `~/Library/Application Support/毛团/`，Windows `%APPDATA%\毛团\`——状态、小本子（`brain/memory.md`）、声音缓存、绘本、画、模型。
 - API key 用系统钥匙串 / DPAPI 加密后存放，界面只显示尾号。
 - 语音识别完全在本机，录音不上传。
-- 出网的只有：你选的脑子（Claude / Codex）、MiniMax（合成语音、画图）、你自己接的 MCP。
+- 出网的只有：Codex、MiniMax（合成语音、画图）、你自己接的 MCP。
 
 ## 常见问题
 
-**它说"脑子没接上"** — Codex：终端跑 `codex login`；Claude：终端打 `claude` → `/login`。切换脑子在设置里。
+**它说"脑子没接上"** — 终端跑一次 `codex login`。
 
 **MiniMax 报 2049 invalid api key** — 站点不对。`sk-api-` 开头的通常是国内站的 key，点「检测这把 key」会自动切换。
 
@@ -207,7 +212,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（18 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（18 套皮肤：`renderer/skins/`）· 脑子：[`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

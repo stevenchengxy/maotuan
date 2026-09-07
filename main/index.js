@@ -519,6 +519,16 @@ async function devShots() {
       if (r.error) log("DEVWORK 起不来:", r.error);
       else log("DEVWORK 结果", JSON.stringify(await r.done).slice(0, 500));
     }
+    if (process.env.MAOTUAN_DEVSCENE) {   // 拍场景反应："fluff,l2d_hiyori" 或 "1"=全部
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const want = process.env.MAOTUAN_DEVSCENE;
+      const evs = ["scene:greet", "scene:back", "scene:bored", "scene:think", "scene:done", "scene:feed", "scene:night", "scene:listen"];
+      for (const [id] of SKIN_LIST) {
+        if (want !== "1" && !want.split(",").includes(id)) continue;
+        store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(1500);
+        for (const ev of evs) { sendPet("pet:scene", { ev }); await wait(500); await shot(pet, `scene-${id}-${ev.slice(6)}`); await wait(1600); }
+      }
+    }
     if (process.env.MAOTUAN_DEVBUBBLE) {   // 三个尺寸各来一句长话，看气泡会不会盖住它
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const text = process.env.MAOTUAN_DEVBUBBLE === "1" ? "你回来啦。你不在的时候，我数了一遍身上的毛，数到 97 就忘了，只好从头再数一次。" : process.env.MAOTUAN_DEVBUBBLE;
