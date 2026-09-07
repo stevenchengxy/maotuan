@@ -89,7 +89,8 @@ mt.on("pet:talking", ({ talking }) => { fluff.S.talking = talking; if (!talking)
 mt.on("pet:pet", () => { fluff.poke(); happyFor(1500); showBubble(pick(PET_LINES)); mt.send("pet:petted"); });
 mt.on("pet:back", ({ mins }) => { fluff.setMood("happy"); fluff.spawn("heart", 2); showBubble(backLine(mins)); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 3000); });
 mt.on("pet:land", ({ k }) => { fluff.land(k || 1); });
-mt.on("pet:react", ({ ev, ctx }) => react(ev, ctx || {}));   // 开发用 / 主进程触发角色反应
+mt.on("pet:react", ({ ev, ctx }) => react(ev, ctx || {}));
+mt.on("pet:whoami", () => mt.send("pet:whoami", { skin: skinId }));   // 开发用 / 主进程触发角色反应
 mt.on("pet:agent", ({ text }) => { fluff.S.hop = 1.0001; fluff.setMood("happy"); fluff.spawn("heart", 4); showBubble(text, { type: true }); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 4000); });
 mt.on("voice:play", playAudio);
 
@@ -167,7 +168,6 @@ stage.addEventListener("pointerdown", e => {
   down = { sx: e.screenX, sy: e.screenY, lx: e.screenX, ly: e.screenY, t: performance.now() };
   dragged = false; trail.length = 0;
 });
-let lastClick = 0;
 function release() {
   if (!down) return;
   const wasDrag = dragged; down = null; dragged = false;
@@ -184,16 +184,43 @@ function release() {
     mt.send("pet:dragend"); fluff.land(0.5);
     setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 800);
   } else {
-    const now = performance.now();
-    if (now - lastClick < 320) { lastClick = 0; fluff.spin(); happyFor(1500); showBubble(pick(["转圈圈！", "晕了晕了。", "再来一次！"])); mt.send("pet:petted"); }
-    else if (fluff.S.talking || humming) { lastClick = 0; mt.send("voice:stopNow"); showBubble(pick(["好吧，不说了。", "……闭嘴。", "嗯，我安静。"]), { type: true }); }
-    else { lastClick = now; setTimeout(() => { if (lastClick === now) mt.send("pet:click"); }, 330); }
+    clickN++;
+    if (fluff.S.talking || humming) { mt.send("voice:stopNow"); showBubble(pick(["好吧，不说了。", "……闭嘴。", "嗯，我安静。"]), { type: true }); }
+    else tapOnce(clickN);
+    clearTimeout(burstT);
+    burstT = setTimeout(() => { const n = clickN; clickN = 0; endBurst(n); }, 380);
   }
 }
 stage.addEventListener("pointerup", release);
 stage.addEventListener("pointercancel", release);
 window.addEventListener("blur", () => { if (down) release(); });
 stage.addEventListener("contextmenu", e => { e.preventDefault(); const sp = toStage(e); if (fluff.hit(sp.x, sp.y)) mt.send("pet:menu"); });
+
+/* ---------- 点它：只互动，不直接开窗。开聊天窗＝右键菜单 / 快捷键 / 连点 N 下（设置里定） ---------- */
+let clickN = 0, burstT = null, tapSeq = 0, manyUntil = 0;
+const TAP_LINES = ["嗯？", "你点我啦。", "在的在的。", "怎么啦？", "我在听。"];
+function tapOnce(n) {
+  // 连点的大反应演完之前，再点只轻轻弹一下，不然会卡在暴走里出不来
+  if (performance.now() < manyUntil) { fluff.S.squash = 1.12; mt.send("pet:petted"); return; }
+  const c = fluff.character || null;
+  const taps = (c && c.taps) || [];
+  const lines = (c && c.tapLines && c.tapLines.length ? c.tapLines : TAP_LINES);
+  if (n >= 5) {
+    if (!react("tap:many")) { fluff.spin(); fluff.spawn("sweat", 2); }
+    manyUntil = performance.now() + 3500;
+    showBubble((c && c.manyLine) || "别、别戳了！", { type: false });
+  } else {
+    if (!(taps.length && react("tap:" + (tapSeq++ % taps.length)))) fluff.poke();
+    if (n === 1 || Math.random() < 0.45) showBubble(pick(lines), { type: false });
+  }
+  happyFor(1200);
+  mt.send("pet:petted");
+}
+function endBurst(n) {
+  const want = Number((state.settings && state.settings.clicksToChat) || 0);
+  if (want >= 2 && n >= want) { mt.send("pet:click"); return; }
+  if (n === 2 && want !== 2) { fluff.spin(); showBubble(pick(["转圈圈！", "晕了晕了。", "再来一次！"])); }
+}
 
 let happyT = null;
 function happyFor(ms) {
@@ -222,7 +249,7 @@ function stageCenter() { const r = stage.getBoundingClientRect(); const g = fluf
 function pop(text, x, y, { size = 44, life = 2.4, delay = 0, rise = 0 } = {}) { fxItems.push({ type: "pop", text, x, y, size, life, t: -delay, rise }); }
 function hopPet() { fluff.S.hop = 1.0001; }
 // 有反应表的皮肤（Live2D 角色、英雄）自己决定怎么庆祝 / 怎么沮丧；没有的走下面的通用动作
-function react(ev, c) { if (typeof fluff.react === "function") { try { fluff.react(ev, c); } catch (e) { console.warn("react", ev, e); } return true; } return false; }
+function react(ev, c) { if (typeof fluff.react !== "function") return false; try { return fluff.react(ev, c) !== false; } catch (e) { console.warn("react", ev, e); return false; } }
 function lineFor(game, key, vars) { const t = fluff.lines && fluff.lines[game] && fluff.lines[game][key]; return t ? t.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "") : null; }
 function toStageXY(x, y) { const r = stage.getBoundingClientRect(); return { x: x - r.left, y: y - r.top }; }
 

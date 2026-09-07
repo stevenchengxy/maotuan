@@ -1,5 +1,6 @@
 import { L2D_MODELS } from "./live2dCatalog.js";
 import { makeFx } from "./fx2d.js";
+import { expandTaps, withTaps } from "./taps.js";
 
 // 二次元角色：底下垫一张 WebGL 画布交给 Live2D（pixi.js + pixi-live2d-display），
 // 上面原来的 2D 画布画特效和"正在下载"的提示。眨眼、呼吸、头发物理、待机动作都是模型自带的；
@@ -25,7 +26,8 @@ const DEFAULT_REACT = {
 };
 
 export function makeLive2D(id) {
-  const def = L2D_MODELS[id];
+  const def = withTaps(L2D_MODELS[id], id);
+  const REACT = expandTaps(def);
   const IDS = { ...DEFAULT_IDS, ...(def.ids || {}) };
   return function make(canvas, opts = {}) {
     const ctx = canvas.getContext("2d");
@@ -111,7 +113,7 @@ export function makeLive2D(id) {
         if (t) timers.push(setTimeout(go, t)); else go();
       }
     }
-    function react(event, ctxArg) { const steps = (def.react || {})[event] || DEFAULT_REACT[event]; if (steps) run(steps, ctxArg); return !!steps; }
+    function react(event, ctxArg) { const steps = REACT[event] || DEFAULT_REACT[event]; if (steps) run(steps, ctxArg); return !!steps; }
 
     async function boot() {
       try {

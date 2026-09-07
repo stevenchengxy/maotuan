@@ -1,7 +1,10 @@
 import { SPRITES } from "./sprites.js";
 
 // 像素家族的引擎：一张图纸 + 一套动作。格子对齐到设备像素，边缘干净。
-export function makePixelSkin(spriteId) {
+import { makeFx } from "./fx2d.js";
+import { expandTaps } from "./taps.js";
+
+export function makePixelSkin(spriteId, def = {}) {
   const SP = SPRITES[spriteId] || SPRITES.blob;
   return function (canvas, opts = {}) {
     const ctx = canvas.getContext("2d");
@@ -23,6 +26,28 @@ export function makePixelSkin(spriteId) {
       const baseY = H * (opts.icon ? 0.5 : 0.62);
       return { R, cx: W / 2, cy: baseY + hopY + floatY, baseY, hopY };
     }
+    // 特效层（和别的皮肤共用）
+    const fx = makeFx(() => { const g = geometry(); return { cx: g.cx, cy: g.cy, R: g.R, head: { x: g.cx, y: g.cy - g.R * 0.45 }, chest: { x: g.cx, y: g.cy }, feet: { x: g.cx, y: g.cy + g.R * 0.95 } }; });
+    const REACT = expandTaps(def);
+    let timers = [];
+    function runSteps(steps, ctxArg) {
+      let t = 0;
+      for (const st of steps || []) {
+        t += st.delay || 0;
+        const go = () => {
+          if (!alive) return;
+          if (st.fx) fx.run(st.fx, ctxArg);
+          if (st.hop) S.hop = 1.0001;
+          if (st.spin) { S.flip = 0.9; S.glitch = 0.3; }
+          if (st.squash) S.squash = 1 + st.squash * 0.25;
+          if (st.mood) S.mood = st.mood;
+          if (st.look) { S.lookTarget.x = st.look[0]; S.lookTarget.y = st.look[1]; }
+          if (st.glitch) S.glitch = st.glitch;
+        };
+        if (t) timers.push(setTimeout(go, t)); else go();
+      }
+    }
+    function react(ev, ctxArg) { const steps = REACT[ev]; if (steps) runSteps(steps, ctxArg); return !!steps; }
     function spawn(type, n, x, y) { for (let i = 0; i < n; i++) S.parts.push({ type, x: x + (Math.random() - 0.5) * 30, y: y + (Math.random() - 0.5) * 16, vx: (Math.random() - 0.5) * 30, vy: -30 - Math.random() * 30, life: 1, sz: 3 + Math.random() * 3, col: Math.random() < 0.5 ? P.accent : P.pink }); }
 
     function frame(dt) {
@@ -48,6 +73,7 @@ export function makePixelSkin(spriteId) {
       const g = geometry();
       if (S.mood === "sleepy" && Math.random() < dt * 0.6) S.parts.push({ type: "z", x: g.cx + g.R * 0.7, y: g.cy - g.R * 0.9, vx: 6, vy: -18, life: 1, sz: 10, col: P.z });
       if (S.mood === "thinking" && Math.random() < dt * 0.4) S.parts.push({ type: "bit", x: g.cx + g.R * 0.8, y: g.cy - g.R, vx: 0, vy: -14, life: 1, sz: 3, col: P.accent });
+      fx.tick(dt);
       render(g);
     }
 
@@ -55,6 +81,8 @@ export function makePixelSkin(spriteId) {
       const { R, cx, cy, baseY, hopY } = g;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const sh = fx.shakeOffset();
+      ctx.setTransform(DPR, 0, 0, DPR, sh.x * DPR, sh.y * DPR); fx.drawLayers(ctx, true); ctx.setTransform(1, 0, 0, 1, 0, 0);
       const c = Math.max(1, Math.round((R * 2 / N) * DPR));
       const gw = c * N, gh = c * SP.rows.length;
       const sx = S.squash, sy = 1 / S.squash;
@@ -137,6 +165,8 @@ export function makePixelSkin(spriteId) {
         else { ctx.fillStyle = p.col; const s = Math.round(p.sz * DPR); ctx.fillRect(Math.round(p.x * DPR), Math.round(p.y * DPR), s, s); }
       }
       ctx.globalAlpha = 1;
+      const sh2 = fx.shakeOffset();
+      ctx.setTransform(DPR, 0, 0, DPR, sh2.x * DPR, sh2.y * DPR); fx.drawParts(ctx); fx.drawLayers(ctx, false); ctx.setTransform(1, 0, 0, 1, 0, 0);
     }
     function mix(a, b, k) { const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16); const ch = s => Math.round(((pa >> s) & 255) * (1 - k) + ((pb >> s) & 255) * k); return `rgb(${ch(16)},${ch(8)},${ch(0)})`; }
 
@@ -148,8 +178,9 @@ export function makePixelSkin(spriteId) {
     (function loop(now) { if (!alive) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; frame(dt); raf = requestAnimationFrame(loop); })(last);
 
     return {
-      S, hit, petAt, geometry, resize,
-      destroy: () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); },
+      S, hit, petAt, geometry, resize, react, fx,
+      character: def.character || null, lines: (def.character && def.character.lines) || null,
+      destroy: () => { alive = false; cancelAnimationFrame(raf); for (const t of timers) clearTimeout(t); window.removeEventListener("resize", resize); },
       spawn: (t, n) => { const g = geometry(); spawn(t === "heart" ? "heart" : "bit", n, g.cx, g.cy - g.R * 0.9); },
       setMouth: v => { S.mouthTarget = Math.max(0, Math.min(1, v)); },
       setMood: m => { S.mood = m; if (m !== "idle") S.beh = null; },

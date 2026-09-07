@@ -1,4 +1,7 @@
-// 手绘（矢量）皮肤的共用骨架：状态机、眨眼、小动作、粒子、命中；每个皮肤只负责画身体和脸。
+// 手绘（矢量）皮肤的共用骨架：状态机、眨眼、小动作、粒子、命中、特效层；每个皮肤只负责画身体和脸。
+import { makeFx } from "./fx2d.js";
+import { expandTaps } from "./taps.js";
+
 export function makeVectorSkin(def) {
   return function (canvas, opts = {}) {
     const ctx = canvas.getContext("2d");
@@ -7,6 +10,27 @@ export function makeVectorSkin(def) {
     const S = { mood: "idle", talking: false, mouthLevel: 0, mouthTarget: 0, t: 0, hop: 0, hopT: 6, blink: 0, blinkT: 2.5, look: { x: 0, y: 0 }, lookTarget: { x: 0, y: 0 }, lookHold: 0, pet: { x: 0, y: 0, amt: 0 }, parts: [], beh: null, behT: 5, squash: 1, tilt: 0, carried: false, jiggle: 0, jv: 0, vy: 0, scale: 1, extra: {} };
     function resize() { DPR = Math.min(2, window.devicePixelRatio || 1); const r = canvas.getBoundingClientRect(); W = Math.max(1, r.width); H = Math.max(1, r.height); canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR); ctx.setTransform(DPR, 0, 0, DPR, 0, 0); }
     resize(); window.addEventListener("resize", resize);
+    // 特效层（和 Live2D / 英雄共用同一套）：锚点按当前几何算
+    const fx = makeFx(() => { const g = geometry(); const hy = g.cy - g.R * (def.headK ?? 0.5); return { cx: g.cx, cy: g.cy, R: g.R, head: { x: g.cx, y: hy }, chest: { x: g.cx, y: g.cy }, feet: { x: g.cx, y: g.cy + g.R * 0.95 } }; });
+    const REACT = expandTaps(def);
+    let timers = [];
+    function runSteps(steps, ctxArg) {
+      let t = 0;
+      for (const st of steps || []) {
+        t += st.delay || 0;
+        const go = () => {
+          if (!alive) return;
+          if (st.fx) fx.run(st.fx, ctxArg);
+          if (st.hop) S.hop = 1.0001;
+          if (st.spin) { S.beh = { type: "wiggle", t: 0, dur: 0.9 }; S.jv += 5; }
+          if (st.squash) S.squash = 1 + st.squash * 0.22;
+          if (st.mood) { S.mood = st.mood; if (st.mood !== "idle") S.beh = null; }
+          if (st.look) { S.lookTarget.x = st.look[0]; S.lookTarget.y = st.look[1]; S.lookHold = (st.dur || 900) / 1000; }
+        };
+        if (t) timers.push(setTimeout(go, t)); else go();
+      }
+    }
+    function react(ev, ctxArg) { const steps = REACT[ev]; if (steps) runSteps(steps, ctxArg); return !!steps; }
 
     function geometry() {
       const R = Math.min(W * (opts.icon ? def.iconK || 0.34 : def.rK || 0.22), H * (opts.icon ? def.iconK || 0.34 : (def.rK || 0.22) * 0.9)) * S.scale;
@@ -55,6 +79,7 @@ export function makeVectorSkin(def) {
       if (S.mood === "reading" && S.talking && Math.random() < dt * 0.5) spawn("note", 1, g.cx + g.R * 0.8, g.cy - g.R * 0.8);
       if (S.mood === "thinking" && Math.random() < dt * 0.35) spawn("dot", 1, g.cx + g.R * 0.75, g.cy - g.R * 0.95);
       if (def.tick) def.tick(S, dt, g, { spawn });
+      fx.tick(dt);
       render(g);
     }
 
@@ -92,15 +117,16 @@ export function makeVectorSkin(def) {
         }
       }
     };
-    function render(g) { ctx.clearRect(0, 0, W, H); def.draw(ctx, g, S, face, { W, H, TAU, yawn: S.beh && S.beh.type === "yawn" ? Math.sin(S.beh.t / S.beh.dur * Math.PI) : 0, stretch: S.beh && S.beh.type === "stretch" ? Math.sin(S.beh.t / S.beh.dur * Math.PI) : 0, happy: S.mood === "happy" || S.pet.amt > 0.15, closed: S.mood === "sleepy" ? 1 : Math.min(1, S.blink * 1.25) }); }
+    function render(g) { ctx.clearRect(0, 0, W, H); const sh = fx.shakeOffset(); ctx.save(); ctx.translate(sh.x, sh.y); fx.drawLayers(ctx, true); def.draw(ctx, g, S, face, { W, H, TAU, yawn: S.beh && S.beh.type === "yawn" ? Math.sin(S.beh.t / S.beh.dur * Math.PI) : 0, stretch: S.beh && S.beh.type === "stretch" ? Math.sin(S.beh.t / S.beh.dur * Math.PI) : 0, happy: S.mood === "happy" || S.pet.amt > 0.15, closed: S.mood === "sleepy" ? 1 : Math.min(1, S.blink * 1.25) }); fx.drawParts(ctx); fx.drawLayers(ctx, false); ctx.restore(); }
     function hit(x, y) { const g = geometry(); const [kx, ky, dy] = def.hit || [1.2, 1.15, 0]; const dx = (x - g.cx) / (g.R * kx), dyy = (y - g.cy - g.R * dy) / (g.R * ky); return dx * dx + dyy * dyy <= 1; }
     function petAt(x, y) { S.pet.x = x; S.pet.y = y; S.pet.amt = Math.min(1.2, S.pet.amt + 0.35); S.jv += 3; if (Math.random() < 0.35) spawn("heart", 1, x, y - 10); }
     if (opts.icon) { S.behT = 999; S.hopT = 999; S.blinkT = 999; S.t = 2.1; }
     let last = performance.now(), raf = 0, alive = true;
     (function loop(now) { if (!alive) return; const dt = Math.min(0.05, (now - last) / 1000); last = now; frame(dt); raf = requestAnimationFrame(loop); })(last);
     return {
-      S, hit, petAt, geometry, resize,
-      destroy: () => { alive = false; cancelAnimationFrame(raf); window.removeEventListener("resize", resize); },
+      S, hit, petAt, geometry, resize, react, fx,
+      character: def.character || null, lines: (def.character && def.character.lines) || null,
+      destroy: () => { alive = false; cancelAnimationFrame(raf); for (const t of timers) clearTimeout(t); window.removeEventListener("resize", resize); },
       spawn: (t, n) => { const g = geometry(); spawn(t, n, g.cx, g.cy - g.R * 0.9); },
       setMouth: v => { S.mouthTarget = Math.max(0, Math.min(1, v)); },
       setMood: m => { S.mood = m; if (m !== "idle") S.beh = null; },

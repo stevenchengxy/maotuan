@@ -201,7 +201,7 @@
 // 在普通浏览器里打开也能看（演示数据），方便调界面
 const api = window.mt || (() => {
   const fake = { name: "毛毛", born: Date.now(), pets: 3, fed: 0, platform: "darwin", doc: null, brain: "codex", petHidden: false, loginItem: false, dataDir: "~/demo", uvx: "", agent: null,
-    settings: { brain: "codex", skin: "fluff", hotkey: "Alt+Shift+M", mcp: [], voice: "minimax", minimaxHost: "https://api.minimaxi.com", minimaxModel: "speech-2.8-hd", readModel: "speech-2.8-turbo", voiceId: "Chinese (Mandarin)_Cute_Spirit", speed: 1, pitch: 0, readWith: "minimax", muted: false, codexEffort: "low" },
+    settings: { brain: "codex", skin: "fluff", hotkey: "Alt+Shift+M", voiceHotkey: "Alt+Shift+V", clicksToChat: 0, mcp: [], voice: "minimax", minimaxHost: "https://api.minimaxi.com", minimaxModel: "speech-2.8-hd", readModel: "speech-2.8-turbo", voiceId: "Chinese (Mandarin)_Cute_Spirit", speed: 1, pitch: 0, readWith: "minimax", muted: false, codexEffort: "low" },
     secrets: { minimaxKey: true }, hints: { minimaxKey: "sk-api…demo" }, voiceProvider: "minimax", readProvider: "minimax", voiceError: "",
     mcp: [], presets: [], skins: [{ id: "fluff", name: "毛团", desc: "羊毛毡" }, { id: "blob", name: "像素团", desc: "像素" }], hooks: { claude: false, codex: false, port: 47831, claudeInstalled: true, codexInstalled: true } };
   const voices = [["Chinese (Mandarin)_Cute_Spirit", "憨憨萌兽", "一位呆萌可爱的少年男声，适合憨厚的萌兽角色。"], ["lovely_girl", "萌萌女童", ""], ["cute_boy", "可爱男童", ""], ["Chinese (Mandarin)_Warm_Girl", "温暖少女", "一位温柔温暖的少年女声，标准普通话。"], ["qiaopi_mengmei", "俏皮萌妹", ""], ["female-tianmei", "甜美女性音色", ""], ["male-qn-qingse", "青涩青年音色", ""], ["English_Graceful_Lady", "Graceful Lady", "A graceful English lady"], ["Japanese_Whisper_Belle", "Whisper Belle", "Japanese"]].map(([id, name, desc]) => ({ id, name, desc, kind: "system" }));
@@ -414,7 +414,7 @@ function renderWizard() {
     box.querySelectorAll("a[data-url]").forEach(a => a.addEventListener("click", e => { e.preventDefault(); api.invoke("app:openUrl", { url: a.dataset.url }); }));
   } else {
     box.append(el("h2", {}, "好了，它是你的了"),
-      el("div", { class: "hint", html: "· 鼠标在它身上蹭 = 摸；按住拖 = 抱走；甩出去它会飞<br>· 点它 = 聊天；双击 = 转圈；右键 = 菜单<br>· 按住 🎙 说话，松开就发出去<br>· 「喂它」丢文件进去，它念给你听；还能做成绘本<br>· 「玩」里有猜拳和接豆子<br>· 快捷键 " + (s.hotkey || "Alt+Shift+M") + " 呼出这个窗口；菜单栏 🧶 可以退出<br>· 设置里的「让它盯着你的 AI」：Claude Code / Codex 跑完了它来叫你" }),
+      el("div", { class: "hint", html: "· 鼠标在它身上蹭 = 摸；按住拖 = 抱走；甩出去它会飞<br>· 点它 = 它会有反应（每个样子的反应都不一样）；双击 = 转圈<br>· 右键它 = 菜单：聊天、说话、换样子、设置<br>· 按住 🎙 说话，松开就发出去<br>· 「喂它」丢文件进去，它念给你听；还能做成绘本<br>· 「玩」里有猜拳和接豆子<br>· 快捷键 " + (s.hotkey || "Alt+Shift+M") + " 呼出这个窗口，" + (s.voiceHotkey || "Alt+Shift+V") + " 直接说话；菜单栏 🧶 可以退出<br>· 设置里的「让它盯着你的 AI」：Claude Code / Codex 跑完了它来叫你" }),
       nav(true, "开始", async () => { await api.invoke("app:onboarded"); wizStep = 0; showTab("chat"); }));
   }
   root.append(box);
@@ -585,14 +585,23 @@ function renderSettings() {
 
   // 其它
   const hk = el("input", { value: s.hotkey || "", placeholder: "比如 Alt+Shift+M，留空=不用" });
+  const vhk = el("input", { value: s.voiceHotkey || "", placeholder: "比如 Alt+Shift+V，留空=不用" });
+  const clickSel = el("select", { onchange: e => set({ clicksToChat: Number(e.target.value) }) },
+    ...[[0, "不用点的（只用右键菜单和快捷键）"], [2, "双击它"], [3, "连点三下"], [4, "连点四下"]].map(([v, t]) => el("option", { value: v, selected: Number(s.clicksToChat || 0) === v }, t)));
   root.append(card("语音输入（按住 🎙 说话）",
     el("div", { class: "hint" }, "本地 Whisper 识别，离线、不上传。第一次用会下载模型（small 约 250MB，base 约 80MB 但中文差一些）。"),
     field("模型", el("select", { onchange: e => set({ sttModel: e.target.value }) }, ...[["Xenova/whisper-small", "small（推荐，中文准）"], ["Xenova/whisper-base", "base（小、快、差一点）"], ["Xenova/whisper-medium", "medium（大、慢、更准）"]].map(([v, t]) => el("option", { value: v, selected: (s.sttModel || "Xenova/whisper-small") === v }, t)))),
     field("模型下载走哪", el("select", { onchange: e => set({ hfMirror: e.target.value }) }, el("option", { value: "https://hf-mirror.com", selected: (s.hfMirror || "https://hf-mirror.com") === "https://hf-mirror.com" }, "hf-mirror.com（国内快）"), el("option", { value: "https://huggingface.co", selected: s.hfMirror === "https://huggingface.co" }, "huggingface.co"))),
     el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("stt:warm"); alert(r.error ? "没成：" + r.error : "模型准备好了。"); } }, "现在就下载模型"), el("span", { class: "hint" }, state.stt ? state.stt : ""))
   ));
+  root.append(card("怎么叫出聊天窗",
+    el("div", { class: "hint" }, "点它只是逗它玩，不会弹窗。要说话就右键它 → 和它聊聊，或者用下面的快捷键。"),
+    field("连点它几下打开聊天窗", clickSel),
+    el("div", { class: "row" }, el("span", { class: "hint" }, "呼出 / 收起聊天窗"), hk, el("button", { class: "btn small", onclick: async () => { const r = await set({ hotkey: hk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
+    el("div", { class: "row" }, el("span", { class: "hint" }, "直接开口说话（打开窗口并开麦）"), vhk, el("button", { class: "btn small", onclick: async () => { const r = await set({ voiceHotkey: vhk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
+    el("div", { class: "hint" }, "快捷键写法：Alt / Ctrl / Shift / Command 加一个键，比如 Alt+Shift+M。被别的程序占了会提示你换一个。")
+  ));
   root.append(card("其它",
-    el("div", { class: "row" }, el("span", { class: "hint" }, "呼出 / 收起聊天窗的快捷键"), hk, el("button", { class: "btn small", onclick: async () => { const r = await set({ hotkey: hk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
     el("div", { class: "row" }, el("button", { class: "btn small", onclick: () => { wizStep = 0; showTab("wizard"); } }, "再看一遍新手引导")),
     toggle("开机就出来", !!state.loginItem, v => api.invoke("app:loginItem", { on: v })),
     toggle("静音", !!s.muted, v => set({ muted: v })),

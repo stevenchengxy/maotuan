@@ -30,7 +30,7 @@
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
 | **盯着你的 AI** | Claude Code 或 Codex 跑完一轮、或在等你确认时，它蹦起来叫你 |
-| **24 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬；**真实版英雄**：钢铁侠、蜘蛛侠、绿巨人、洛基、雷神、贾维斯（见下，每位有自己的特效、台词和音色） |
+| **18 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬（见下，每位有自己的名字、反应、台词和音色） |
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
@@ -47,39 +47,28 @@
 
 ### 每个角色一套反应
 
-猜拳、骰子、接豆子，赢了 / 输了 / 平了，被摸、被点、落地、转圈——每个角色的反应都不一样，写在 `renderer/skins/live2dCatalog.js` 和 `heroCatalog.js` 的反应表里：日和撒樱花、春放金彩带、莱丝召唤冰魔法阵、真绪的彩虹魔法和魔杖特效、马克的漫画集中线、名取推眼镜时镜片反光、年糕犬得意脸加骨头雨。表情、动作是 Live2D 模型自带的，粒子、光环、雨云、闪光、飘字是 `renderer/skins/fx2d.js` 画的。台词也各有各的口气（{it}{me} 是出的手势 / 点数），聊天时的说话风格会一并写进人设。
+**点它一下**，还有猜拳、骰子、接豆子的赢 / 输 / 平，被摸、落地、转圈——每个角色的反应都不一样，写在 `renderer/skins/live2dCatalog.js` 的反应表里：日和撒樱花、春放金彩带、莱丝召唤冰魔法阵、真绪的彩虹魔法和魔杖特效、马克的漫画集中线、名取推眼镜时镜片反光、年糕犬得意脸加骨头雨。表情、动作是 Live2D 模型自带的，粒子、光环、雨云、闪光、飘字是 `renderer/skins/fx2d.js` 画的。台词也各有各的口气（{it}{me} 是出的手势 / 点数），聊天时的说话风格会一并写进人设。
+
+点它的反应每个角色有三四个变体轮着来（手绘和像素皮肤也有），连点五下会触发"别戳了"的特殊反应，之后三秒半内再点只轻轻弹一下，不会卡在暴走里。整张表在 `renderer/skins/tapTables.js`，是用 `scripts/merge-taps.py` 生成的——它会照着真模型核对每个特效名、粒子、锚点、Live2D 的动作 / 表情 / 参数，并强制"全屏闪不过 0.18、抖动不过 4 像素、第一帧必须看得见"。
 
 <p align="center"><img src="docs/live2d-fx-sheet.png" width="860" alt="Live2D 角色的游戏特效"></p>
 
 ### 音色也配好了
 
-选了带人设的角色，说话就用它自己的 MiniMax 音色（设置 → 声音 里可以关掉，改用你挑的那个）：
+Live2D 角色说话用自己的 MiniMax 音色（设置 → 声音 里可以关掉，改用你挑的那个）：
 
 | 角色 | 音色 | 角色 | 音色 |
 |---|---|---|---|
-| 日和 | 清脆少女 | 钢铁侠 | 不羁青年 |
-| 春 | 甜美女声 | 蜘蛛侠 | 率真弟弟 |
-| 莱丝 | 温暖少女（慢一点、低一点） | 绿巨人 | 播报男声（压低六个半音） |
-| 真绪 | 俏皮萌妹 | 洛基 | 冷淡学长 |
-| 马克 | 可爱男童 | 雷神 | 霸道青年 |
-| 名取 | 温润男声 | 贾维斯 | 沉稳高管 |
-| 年糕犬 | 憨憨萌兽 | | |
+| 日和 | 清脆少女 | 马克 | 可爱男童 |
+| 春 | 甜美女声 | 名取 | 温润男声 |
+| 莱丝 | 温暖少女（慢一点、低一点） | 年糕犬 | 憨憨萌兽 |
+| 真绪 | 俏皮萌妹 | | |
 
 换到某个角色时它会用自己的声音打个招呼；游戏结果的台词会带上开心 / 沮丧 / 惊讶的语气。
 
 ### 每个样子都有自己的名字和性子
 
-不是所有样子都叫毛毛：毛团叫毛毛，水母叫小水，史莱姆叫果冻，小幽灵叫幽幽，小机器人叫滴滴，像素那几只叫方块、蓝蓝、橘子、小幽、哔哔、绿豆；Live2D 角色和英雄用各自的名字（日和、春、莱丝、真绪、马克、名取、年糕犬；钢铁侠、蜘蛛侠、绿巨人、洛基、雷神、贾维斯）。换样子的时候名字、说话风格、音色一起换，小本子里的记忆是共用的。设置 → 它的名字和样子 里改的是当前这个样子的名字，清空就恢复默认。
-
-## 英雄皮肤（真实版）
-
-钢铁侠、蜘蛛侠、绿巨人、洛基、雷神，加一个贾维斯风的全息 AI 管家。它们**不是漫威的素材**——是在你自己电脑上、用你的 MiniMax key 让 image-01 按文字描述渲染出来的写实风原创形象（每位三张：待机 / 得意 / 沮丧，绿幕或洋红幕出图，渲染层再把幕布抠掉），仓库和安装包里不含任何图片。第一次选中某位英雄要等两三分钟出图，这期间先显示手绘 Q 版顶着；生成好的图存在 `userData/heroes/`，以后秒开。
-
-真实版会呼吸、悬浮（钢铁侠和贾维斯）、看向鼠标、蹦、落地压扁、转身、被拎着晃；说话和被摸时背后有一层光。抠完图会从轮廓里找锚点——头顶、举起来的手、胸口最亮的反应堆、蓝色的宝石——特效就打在这些点上：钢铁侠掌心射出冲击波光束、反应堆常亮脉动、悬浮和被扔出去时脚下喷推进器火花；蜘蛛侠向屏幕角落吐蛛丝、赢了翻跟头、输了倒挂在一根丝上；绿巨人砸地时地面裂开、冲击圈扩散、整个窗口震动，发力时身上一圈绿色怒气；洛基召唤幻影分身、绿焰魔法阵，输了消失在绿烟里再出现；雷神举锤引下好几道闪电、全屏闪白、身上蓝电光环；贾维斯脚下铺全息网格、光环扫描、报胜率。三张图之间的脸和衣服靠 image-01 的 subject_reference 保持一致。没有 MiniMax key 的话，就一直用手绘 Q 版（`renderer/skins/heroes.js`）。
-
-<p align="center"><img src="docs/heroes-sheet.png" width="860" alt="英雄皮肤"></p>
-
-想换成自己找的图：把三张图放到 `userData/heroes/<hero_iron 等>/idle.jpg、win.jpg、lose.jpg`（纯色绿幕或洋红幕背景最好），重新选一次角色就行。
+不是所有样子都叫毛毛：毛团叫毛毛，水母叫小水，史莱姆叫果冻，小幽灵叫幽幽，小机器人叫滴滴，像素那几只叫方块、蓝蓝、橘子、小幽、哔哔、绿豆；Live2D 角色用各自的名字（日和、春、莱丝、真绪、马克、名取、年糕犬）。换样子的时候名字、说话风格、音色一起换，小本子里的记忆是共用的。设置 → 它的名字和样子 里改的是当前这个样子的名字，清空就恢复默认。
 
 ## 下载安装
 
@@ -90,7 +79,23 @@
 | macOS（Apple Silicon） | `maotuan-x.y.z-mac-arm64.dmg` | 拖进「应用程序」。没有签名，第一次打开若提示"无法验证开发者"：**右键 → 打开**，或 系统设置 → 隐私与安全性 → 仍要打开 |
 | Windows 10/11 x64 | `maotuan-x.y.z-win-x64-setup.exe`（安装版） / `…-portable.exe`（免安装） | SmartScreen 提示时点「更多信息 → 仍要运行」 |
 
-打开后它出现在屏幕右下角；菜单栏 / 托盘里有个 🧶，退出也在那里。快捷键 `Alt+Shift+M` 呼出聊天窗，`Alt+Shift+V` 直接开始说话。
+打开后它出现在屏幕右下角；菜单栏 / 托盘里有个 🧶，退出也在那里。
+
+## 怎么跟它玩
+
+**点它不会弹窗。** 点一下就是逗它玩：每个角色有三四种不同的反应轮着来，连着点还会有"别戳了"的特殊反应，台词也是它自己的口气。要说话，用下面任意一种：
+
+| 想干嘛 | 怎么做 |
+|---|---|
+| 打开聊天窗 | **右键它 → 和它聊聊**；或快捷键 `Alt+Shift+M`；或在设置里打开「连点几下打开聊天窗」（双击 / 三击 / 四击） |
+| 直接开口说话 | 右键 → 对它说话；或快捷键 `Alt+Shift+V`（打开窗口并开麦） |
+| 换样子、调大小、静音、设置 | 右键它，菜单里都有 |
+| 摸它 | 鼠标在它身上蹭 |
+| 抱走 / 扔出去 | 按住拖；甩得够快它会飞出去撞墙弹回来 |
+| 转圈 | 双击 |
+| 让它闭嘴 | 它说话时点它一下 |
+
+两个快捷键都能在 设置 → 怎么叫出聊天窗 里改，留空就是不用。
 
 > 语音输入需要电脑上装有 **Node.js 18+**（[nodejs.org](https://nodejs.org)）——识别跑在一个用系统 Node 起的子进程里，Electron 自带的 Node 跑不了 onnxruntime。其它功能不需要。
 
@@ -171,7 +176,7 @@ npm run dist:mac     # → dist/*.dmg
 npm run dist:win     # → dist/*-setup.exe, *-portable.exe
 ```
 
-CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.4.0`）就会在 macOS 和 Windows 上各打一份。
+CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.5.0`）就会在 macOS 和 Windows 上各打一份。
 
 开发时有几个环境变量方便调试：`MAOTUAN_SHOT=1`（把每个皮肤和面板截图到 `.shots/`）、`MAOTUAN_DEV=1`（详细日志）、`MAOTUAN_DEVCHAT="……"`（启动后自动聊一句）、`MAOTUAN_ICON=1`（把它渲染成应用图标）。外观规范在 `.claude/skills/fluff-art/SKILL.md`。
 
@@ -200,7 +205,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（24 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（18 套皮肤：`renderer/skins/`）· 脑子：[`@anthropic-ai/claude-agent-sdk`](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk) / [`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

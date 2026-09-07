@@ -1,6 +1,10 @@
 import { makeVectorSkin } from "./vectorBase.js";
+import { SKIN_DEFAULTS } from "./names.js";
+import { withTaps } from "./taps.js";
+const DEF = withTaps(SKIN_DEFAULTS.slime, "slime");
 // 史莱姆：果冻一样、亮亮的、会晃。
 export const makeSlime = makeVectorSkin({
+  ...DEF, character: DEF,
   rK: 0.24, baseYK: 0.64, hit: [1.25, 1.0, 0.1],
   draw(ctx, g, S, face, X) {
     const { R, cx, cy } = g; const { TAU, happy, closed, yawn, stretch } = X;

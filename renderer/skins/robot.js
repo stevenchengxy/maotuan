@@ -1,6 +1,10 @@
 import { makeVectorSkin } from "./vectorBase.js";
+import { SKIN_DEFAULTS } from "./names.js";
+import { withTaps } from "./taps.js";
+const DEF = withTaps(SKIN_DEFAULTS.robot, "robot");
 // 小机器人：圆角的小铁盒，脸是一块屏幕，眼睛是两道青光。
 export const makeRobot = makeVectorSkin({
+  ...DEF, character: DEF,
   rK: 0.21, baseYK: 0.62, hit: [1.25, 1.25, 0.05],
   draw(ctx, g, S, face, X) {
     const { R, cx, cy } = g; const { TAU, happy, closed, yawn, stretch } = X;

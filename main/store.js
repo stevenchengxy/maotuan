@@ -24,6 +24,8 @@ export class Store {
         skin: "fluff",
         petScale: 1,               // 它的大小 0.6 ~ 1.8
         hotkey: "Alt+Shift+M",
+        voiceHotkey: "Alt+Shift+V",   // 按住说话
+        clicksToChat: 0,              // 连点几下打开聊天窗；0 = 只用右键菜单 / 快捷键
         watcherPort: 47831,
         mcp: [],
         sttModel: "Xenova/whisper-small",

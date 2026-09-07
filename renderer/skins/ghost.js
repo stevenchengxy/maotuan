@@ -1,6 +1,10 @@
 import { makeVectorSkin } from "./vectorBase.js";
+import { SKIN_DEFAULTS } from "./names.js";
+import { withTaps } from "./taps.js";
+const DEF = withTaps(SKIN_DEFAULTS.ghost, "ghost");
 // 小幽灵：软软的、半透明、裙边一直在飘。
 export const makeGhost = makeVectorSkin({
+  ...DEF, character: DEF,
   rK: 0.22, baseYK: 0.56, float: true, noHop: true, hit: [1.15, 1.35, 0.15],
   draw(ctx, g, S, face, X) {
     const { R, cx, cy } = g; const { TAU, happy, closed, yawn } = X;
