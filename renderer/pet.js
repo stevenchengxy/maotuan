@@ -2,6 +2,7 @@ import { makeSkin, SKINS } from "./skins/index.js";
 
 const stage = document.getElementById("stage");
 const bubble = document.getElementById("bubble");
+const btext = document.getElementById("btext");
 const fxc = document.getElementById("fx"), fx = fxc.getContext("2d");
 const hud = document.getElementById("hud");
 // 舞台（它站的那块）固定是"本体尺寸"，窗口可以比它大（打游戏时当作场地）
@@ -9,6 +10,7 @@ let base = { w: window.innerWidth, h: window.innerHeight };
 function layout() {
   stage.style.width = base.w + "px"; stage.style.height = base.h + "px";
   bubble.style.top = Math.max(14, window.innerHeight - base.h + 14) + "px";
+  btext.style.maxHeight = bubbleRoom() + "px";
   fluff && fluff.resize && fluff.resize();
 }
 // 把窗口坐标换成舞台坐标
@@ -34,22 +36,40 @@ function useSkin(id) {
 
 /* ---------- 气泡 ---------- */
 let hideT = null, typeT = null;
-const BUBBLE_MAX = 150;
-function setBubbleText(t, isLong) {
-  bubble.textContent = t;
-  bubble.classList.toggle("long", !!isLong);
-  if (isLong) { const m = document.createElement("span"); m.className = "more"; m.textContent = "点开看全文"; bubble.append(m); }
+// 气泡最多占它头顶那一小块：超出的字截掉，露出「点开看全文」，点开在聊天窗里看
+const BUBBLE_MAX = 48;
+function bubbleRoom() {
+  // 气泡底边不能压到它的头：留出舞台高度的一小截
+  const top = parseFloat(bubble.style.top) || 14;
+  const headY = window.innerHeight - base.h * 0.78;
+  return Math.max(46, Math.min(Math.max(92, base.h * 0.3), Math.round(headY - top - 8)));
+}
+function setBubbleText(t) {
+  btext.textContent = t;
+  markClipped();
+}
+// 放不下就把字砍到刚好放得下，末尾接「点开看全文」——按真实高度二分，任何尺寸都不会切字或压住脸
+function markClipped() {
+  const m0 = btext.querySelector(".more"); if (m0) m0.remove();
+  if (btext.scrollHeight <= btext.clientHeight + 1) return;
+  const full = btext.textContent;
+  const more = document.createElement("span"); more.className = "more"; more.textContent = "…点开看全文";
+  const fits = n => { btext.textContent = full.slice(0, n); btext.append(more); return btext.scrollHeight <= btext.clientHeight + 1; };
+  let lo = 0, hi = full.length;
+  while (lo < hi) { const mid = Math.ceil((lo + hi) / 2); if (fits(mid)) lo = mid; else hi = mid - 1; }
+  fits(lo);
 }
 function showBubble(text, { hold = false, type = true, tail = false } = {}) {
   clearTimeout(hideT); clearTimeout(typeT);
   text = String(text || "").trim();
   if (!text) { hideBubble(); return; }
   bubble.classList.remove("hide"); bubble.classList.add("show");
+  btext.style.maxHeight = bubbleRoom() + "px";
   const long = text.length > BUBBLE_MAX;
   // 太长的话：说完了露开头，正在说的时候露结尾（像字幕）
   const shown = long ? (tail ? "……" + text.slice(-BUBBLE_MAX) : text.slice(0, BUBBLE_MAX)) : text;
-  if (type && !long) { let i = 0; bubble.textContent = ""; (function step() { bubble.textContent = shown.slice(0, ++i); if (i < shown.length) typeT = setTimeout(step, 28); else if (!hold) scheduleHide(shown); })(); }
-  else { setBubbleText(shown, long); if (!hold) scheduleHide(shown); }
+  if (type && !long) { let i = 0; btext.textContent = ""; (function step() { btext.textContent = shown.slice(0, ++i); if (i < shown.length) typeT = setTimeout(step, 28); else { markClipped(); if (!hold) scheduleHide(shown); } })(); }
+  else { setBubbleText(shown); if (!hold) scheduleHide(shown); }
 }
 bubble.addEventListener("click", () => { if (fluff.S.talking || humming) mt.send("voice:stopNow"); else mt.send("pet:click"); });
 function scheduleHide(text) { clearTimeout(hideT); hideT = setTimeout(hideBubble, 3500 + Math.min(9000, text.length * 90)); }

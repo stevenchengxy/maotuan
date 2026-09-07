@@ -463,6 +463,19 @@ async function devShots() {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
     for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    if (process.env.MAOTUAN_DEVBUBBLE) {   // 三个尺寸各来一句长话，看气泡会不会盖住它
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      const text = process.env.MAOTUAN_DEVBUBBLE === "1" ? "你回来啦。你不在的时候，我数了一遍身上的毛，数到 97 就忘了，只好从头再数一次。" : process.env.MAOTUAN_DEVBUBBLE;
+      const origScale = store.settings.petScale, origSkin = store.settings.skin;
+      for (const sk of ["fluff", "l2d_hiyori"]) {
+        store.patchSettings({ skin: sk }); sendPet("state", publicState()); if (sk.startsWith("l2d_")) await waitL2D(sk, 60000); await wait(1200);
+        for (const k of [0.7, 1, 1.7]) {
+          store.patchSettings({ petScale: k }); applyPetSize(); sendPet("state", publicState()); await wait(700);
+          sendPet("pet:say", { text }); await wait(2600); await shot(pet, `bubble-${sk}-${k}`); await wait(400);
+        }
+      }
+      store.patchSettings({ petScale: origScale, skin: origSkin }); applyPetSize(); sendPet("state", publicState());
+    }
     if (process.env.MAOTUAN_DEVTAP) {   // 拍每个皮肤的点击反应："fluff,l2d_hiyori" 或 "1"=全部
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const want = process.env.MAOTUAN_DEVTAP;

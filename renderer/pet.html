@@ -12,17 +12,17 @@
   @media (prefers-color-scheme: dark) { #hud { color: #EDE7DC; text-shadow: 0 1px 0 rgba(0,0,0,.6); } }
   #bubble {
     position: absolute; left: 50%; top: 14px; transform: translateX(-50%);
-    max-width: 264px; padding: 9px 13px; border-radius: 15px;
+    max-width: min(264px, 88%); padding: 9px 13px; border-radius: 15px;
     background: rgba(250, 247, 240, 0.96); color: #33303A;
-    font-size: 14px; line-height: 1.65; letter-spacing: .01em;
+    font-size: clamp(10.5px, 2.9vw, 14px); line-height: 1.5; letter-spacing: .01em;
     box-shadow: 0 6px 22px rgba(30, 20, 30, 0.18), 0 0 0 1px rgba(60, 50, 60, 0.08);
     opacity: 0; transition: opacity .25s ease, transform .25s ease; pointer-events: auto; cursor: pointer;
     text-wrap: pretty; word-break: break-word;
-    max-height: 126px; overflow: hidden;
+    /* 高度限制在里面那层 #btext 上：气泡的小尾巴是绝对定位的，会把 scrollHeight 撑大，量不准 */
   }
-  #bubble.long::before { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 34px; background: linear-gradient(rgba(250,247,240,0), rgba(250,247,240,.98)); border-radius: 0 0 15px 15px; }
-  #bubble.long .more { position: absolute; right: 10px; bottom: 5px; font-size: 11px; color: #AF5164; }
-  @media (prefers-color-scheme: dark) { #bubble.long::before { background: linear-gradient(rgba(44,38,50,0), rgba(44,38,50,.98)); } #bubble.long .more { color: #D8808F; } }
+  #btext { display: block; overflow: hidden; max-height: 92px; }
+  #bubble .more { color: #AF5164; font-size: .86em; white-space: nowrap; }
+  @media (prefers-color-scheme: dark) { #bubble .more { color: #E2919F; } }
   #bubble::after {
     content: ""; position: absolute; left: 50%; bottom: -6px; width: 12px; height: 12px;
     background: rgba(250, 247, 240, 0.96); transform: translateX(-50%) rotate(45deg); border-radius: 2px;
@@ -40,7 +40,7 @@
   <canvas id="stage"></canvas>
   <canvas id="fx"></canvas>
   <div id="hud"></div>
-  <div id="bubble"></div>
+  <div id="bubble"><span id="btext"></span></div>
   <script type="module" src="./pet.js"></script>
 </body>
 </html>
