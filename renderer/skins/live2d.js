@@ -224,7 +224,15 @@ export function makeLive2D(id) {
     if (mt && mt.on) {
       mt.on("live2d:progress", p => { if (p && p.id === id) status = { pct: p.pct, note: p.note }; });
       // 开发用：报动作 / 表情清单，按名字播放，触发反应
-      mt.on("live2d:query", () => { if (!model || dead) return; const defs = model.internalModel.motionManager.definitions || {}; const em = model.internalModel.motionManager.expressionManager; mt.send("live2d:info", { id, motions: Object.fromEntries(Object.entries(defs).map(([g, v]) => [g, (v || []).length])), expressions: em ? em.definitions.map(d => d.Name || d.name) : [] }); });
+      mt.on("live2d:query", () => {
+        if (!model || dead) return;
+        const defs = model.internalModel.motionManager.definitions || {}; const em = model.internalModel.motionManager.expressionManager;
+        const cm = model.internalModel.coreModel; const diag = {};
+        try { diag.parts = (cm._partIds || (cm.getPartIds && cm.getPartIds()) || []).slice(0, 60); } catch {}
+        try { diag.eyeL = cm.getParameterValueById(IDS.eyeL); diag.eyeR = cm.getParameterValueById(IDS.eyeR); } catch {}
+        try { diag.eyeBlink = !!model.internalModel.eyeBlink; diag.breath = !!model.internalModel.breath; } catch {}
+        mt.send("live2d:info", { id, motions: Object.fromEntries(Object.entries(defs).map(([g, v]) => [g, (v || []).length])), expressions: em ? em.definitions.map(d => d.Name || d.name) : [], diag });
+      });
       mt.on("live2d:play", ({ motion: mo, expression: ex, react: ev, params: ps, mood } = {}) => { if (!model || dead) return; try { if (mo) motion(mo[0] || mo.group, mo[1] ?? mo.index, true); if (ex !== undefined) expression(ex); if (ps) held.push({ params: ps, until: performance.now() + 2500 }); if (mood) setMood(mood); if (ev) react(ev, {}); } catch (e) { console.warn("[live2d] play", e); } });
     }
     const ro = new ResizeObserver(resize); ro.observe(canvas);

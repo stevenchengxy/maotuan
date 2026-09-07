@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """把点击反应设计（JSON）校验后写成 renderer/skins/tapTables.js。
 用法: python3 scripts/merge-taps.py taps.json"""
-import json, io, os, sys, glob
+import json, io, os, re, sys, glob
 
 OPS = {"burst","shower","rise","ring","glow","lines","cloud","flash","bolt","magic","text","web","shake","hud","clone","beam","cracks","grid"}
 KINDS = {"heart","note","zzz","star","sparkle","petal","snow","confetti","bone","paw","sweat","smoke","coin","spark","ember","dot","bubble","leaf","web","wisp","ice"}
 ANCHORS = {"head","chest","feet","headR","headL","above","item"}
 MOODS = {"happy","thinking","sleepy","idle","reading"}
 BASIC = {"fluff","jelly","slime","ghost","robot","blob","pjelly","pcat","pghost","probot","pslime"}
-L2D_DIR = {"l2d_hiyori":"Hiyori","l2d_haru":"Haru","l2d_rice":"Rice","l2d_mao":"Mao","l2d_mark":"Mark","l2d_natori":"Natori","l2d_wanko":"Wanko"}
+L2D_DIR = {"l2d_hiyori":"Hiyori","l2d_haru":"Haru","l2d_rice":"Rice","l2d_mao":"Mao","l2d_mark":"Mark","l2d_natori":"Natori","l2d_wanko":"Wanko","l2d_koharu":"Koharu"}
 ROOT = os.path.expanduser("~/Library/Application Support/毛团/live2d")
 
 def l2d_inventory(sid):
@@ -23,6 +23,13 @@ def l2d_inventory(sid):
     cdi = fr.get("DisplayInfo")
     if cdi and os.path.exists(os.path.join(ROOT, d, cdi)):
         params = {p["Id"] for p in json.load(io.open(os.path.join(ROOT, d, cdi), encoding="utf-8")).get("Parameters", [])}
+    else:
+        # 没有 cdi3.json 的模型（比如小春），参数名直接从 moc3 里捞
+        moc = os.path.join(ROOT, d, fr.get("Moc", d + ".moc3"))
+        if os.path.exists(moc):
+            blob = io.open(moc, "rb").read()
+            params = set(re.findall(rb"[A-Za-z][A-Za-z0-9_]{2,40}", blob))
+            params = {b.decode() for b in params if b.startswith((b"PARAM", b"Param"))}
     return {"motions": motions, "exps": exps, "params": params}
 
 warn = []
@@ -65,10 +72,15 @@ def check_actions(sid, where, actions, inv):
         a = dict(a)
         if "fx" in a: a["fx"] = check_fx(sid, where, a["fx"])
         if kind != "l2d":
-            for k in ("motion", "exp", "params", "hold", "dur"):
-                if k in a and kind == "basic" and k in ("motion", "exp", "params", "hold"):
-                    warn.append(f"{sid} {where}: 手绘/像素皮肤不该有 {k}，已删"); a.pop(k, None)
+            for k in ("motion", "exp", "params", "hold"):
+                # 画出来的角色（ai_ 开头）用 face + hold 换脸，这两个要留着
+                if k in a and kind == "basic" and not (k == "hold" and "face" in a):
+                    warn.append(f"{sid} {where}: 这类皮肤不该有 {k}，已删"); a.pop(k, None)
         if kind == "basic":
+            if a.get("face") and a["face"] not in ("idle", "blink", "happy", "sad"):
+                warn.append(f"{sid} {where}: 没有 {a['face']} 这张脸，已删"); a.pop("face"); a.pop("hold", None)
+            if "face" in a and not sid.startswith("ai_"):
+                warn.append(f"{sid} {where}: 只有画出来的角色才有 face，已删"); a.pop("face"); a.pop("hold", None)
             if "pose" in a: warn.append(f"{sid} {where}: 没有 pose 这种键，已删"); a.pop("pose")
             if a.get("mood") and a["mood"] not in MOODS: warn.append(f"{sid} {where}: 未知心情 {a['mood']}，已删"); a.pop("mood")
         if kind == "l2d" and inv:
@@ -94,7 +106,7 @@ def ensure_first_frame(sid, where, actions):
     a0 = actions[0]
     if a0.get("delay"):
         warn.append(f"{sid} {where}: 第一帧延后了 {a0['delay']}ms，改成立刻"); a0.pop("delay")
-    visible = any(k in a0 for k in ("squash", "hop", "spin", "pose", "motion", "fx", "exp")) or (sid.startswith("l2d_") and "params" in a0)
+    visible = any(k in a0 for k in ("squash", "hop", "spin", "pose", "motion", "fx", "exp", "face")) or (sid.startswith("l2d_") and "params" in a0)
     if not visible:
         warn.append(f"{sid} {where}: 第一帧看不出反应，补一下形变"); a0["squash"] = 0.45
     return actions

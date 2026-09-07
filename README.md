@@ -30,12 +30,20 @@
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
 | **盯着你的 AI** | Codex（或 Claude Code）跑完一轮、或在等你确认时，它蹦起来叫你 |
-| **24 套皮肤** | 手绘：毛毛、小水、果冻、幽幽、滴滴；像素：方块、蓝蓝、橘子、小幽、哔哔、绿豆；**桌面助手**：小澈（光球）、小终（终端）、罐罐（胶囊）、方方（立方体）、数萤（数据光）、小月（月牙灯）；**二次元 Live2D**：日和、春、莱丝、真绪、马克、名取、年糕犬。每个都有自己的名字、动作、台词和音色 |
+| **31 套皮肤** | 手绘：毛毛、小水、果冻、幽幽、滴滴；像素：方块、蓝蓝、橘子、小幽、哔哔、绿豆；**桌面助手**：小澈、小终、罐罐、方方、数萤、小月；**画出来的角色**：豆豆、云朵、小火、团子、星野、阿岚；**二次元 Live2D**：日和、春、莱丝、真绪、马克、名取、年糕犬、小春。每个都有自己的名字、动作、台词和音色 |
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
   <img src="docs/comic.jpg" width="300" alt="四格漫画">
 </p>
+
+## 画出来的角色（新）
+
+六个精细插画角色：**豆豆**（柴犬）、**云朵**（布偶猫）、**小火**（小熊猫）、**团子**（企鹅）、**星野**（二次元女孩）、**阿岚**（二次元男孩）。它们不是代码画的，也不是 Live2D——第一次选中时，用你自己的 MiniMax key 在本机画出一张「四格表情表」：同一只角色、同一个姿势、同一种画风，只有脸不一样（平时 / 闭眼 / 大笑 / 哭），绿幕出图，切成四张。为什么是一张而不是四张：分四次画，模型只保得住「像同一只」，保不住体型和笔触——猫画过一次就变成了四只不同的猫。渲染层把幕布抠掉，再让这张画活过来：呼吸、上下轻浮、看鼠标时整个人往那边偏、换脸走 0.4 秒交叉淡入、说话时轻轻点头、被摸被点时换表情加特效。
+
+仓库和安装包里不含任何图片，全部现画现存在 `userData/chars/`，画好以后秒开。想换成自己的画，把四张图放进 `userData/chars/<角色 id>/idle.jpg、blink.jpg、happy.jpg、sad.jpg` 就行（纯色背景最好抠）。
+
+<p align="center"><img src="docs/chars-sheet.png" width="860" alt="六个画出来的角色"></p>
 
 ## 桌面助手（新）
 
@@ -53,7 +61,7 @@
 
 ## 二次元角色（Live2D）
 
-除了手绘、像素和 Q 版皮肤，毛团还能变成真正的二次元立绘角色：**桃濑日和、春、莱丝、虹色真绪**（女生），**马克君、名取仁**（男生），外加一只**年糕犬**。它们是 Live2D 官方免费发布的示例模型，毛团用 Cubism Core + [pixi-live2d-display](https://github.com/guansss/pixi-live2d-display) 在透明窗口里实时渲染：眨眼、呼吸、头发和裙摆的物理、待机小动作、被摸时的反应动作都是模型自带的；看向鼠标、说话张嘴（跟着 MiniMax 的声音）、被摸脸红、困了闭眼、被拎起来晃、蹦跳、转圈、桌面小游戏是毛团接上去的。右键它 → 换个样子，或 设置 → 它的名字和样子。
+毛团还能变成真正的二次元立绘角色：**桃濑日和、春、莱丝、虹色真绪、小春**（女生），**马克君、名取仁**（男生），外加一只**年糕犬**。它们是 Live2D 官方免费发布的示例模型，毛团用 Cubism Core + [pixi-live2d-display](https://github.com/guansss/pixi-live2d-display) 在透明窗口里实时渲染：眨眼、呼吸、头发和裙摆的物理、待机小动作、被摸时的反应动作都是模型自带的；看向鼠标、说话张嘴（跟着 MiniMax 的声音）、被摸脸红、困了闭眼、被拎起来晃、蹦跳、转圈、桌面小游戏是毛团接上去的。右键它 → 换个样子，或 设置 → 它的名字和样子。
 
 - 第一次选中某个角色，会从 Live2D 官方 GitHub（失败则走 jsDelivr 镜像）把模型下到本机 `userData/live2d/`，每个 3–10 MB；引擎 Cubism Core 从 Live2D 官方 CDN 取。仓库和安装包里都不含这些文件，下载时它站的地方会显示进度。
 - 版权：角色模型 © Live2D Inc.，按 [Live2D Free Material License](https://www.live2d.com/eula/live2d-free-material-license-agreement_en.html) 和[示例数据使用条款](https://www.live2d.com/eula/live2d-sample-model-terms_en.html)使用；名取仁是协作角色，仅限非商用。This content uses sample data owned and copyrighted by Live2D Inc. The sample data are utilized in accordance with terms and conditions set by Live2D Inc.
@@ -226,7 +234,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（24 套皮肤：`renderer/skins/`）· 脑子：[`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（31 套皮肤：`renderer/skins/`）· 脑子：[`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

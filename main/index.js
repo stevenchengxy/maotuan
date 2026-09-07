@@ -16,6 +16,8 @@ import { Stt } from "./stt.js";
 import { StoryBook, generateImage } from "./story.js";
 import { Singer } from "./sing.js";
 import { Live2D } from "./live2d.js";
+import { CharArt } from "./charart.js";
+import { CHARS } from "../renderer/skins/charCatalog.js";
 import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
 import { petNameOf } from "./persona.js";
 const petName = () => petNameOf(store.data);
@@ -25,7 +27,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PRELOAD = path.join(ROOT, "renderer", "preload.cjs");
 const IS_MAC = process.platform === "darwin";
-const SKIN_LIST = [["fluff", "毛团", "羊毛毡"], ["jelly", "水母", "半透明"], ["blob", "像素团", "像素"], ["pjelly", "像素水母", "像素"], ["pcat", "像素猫", "像素"], ["pghost", "像素幽灵", "像素"], ["probot", "像素机器人", "像素"], ["pslime", "像素史莱姆", "像素"], ["slime", "史莱姆", "果冻"], ["ghost", "小幽灵", "会飘"], ["robot", "小机器人", "屏幕脸"], ["orb", "小澈", "全息光球"], ["term", "小终", "终端窗口"], ["capsule", "罐罐", "胶囊机器人"], ["moon", "小月", "月牙夜灯"], ["cube", "方方", "立方体"], ["wisp", "数萤", "数据光"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc])];
+const SKIN_LIST = [["fluff", "毛团", "羊毛毡"], ["jelly", "水母", "半透明"], ["blob", "像素团", "像素"], ["pjelly", "像素水母", "像素"], ["pcat", "像素猫", "像素"], ["pghost", "像素幽灵", "像素"], ["probot", "像素机器人", "像素"], ["pslime", "像素史莱姆", "像素"], ["slime", "史莱姆", "果冻"], ["ghost", "小幽灵", "会飘"], ["robot", "小机器人", "屏幕脸"], ["orb", "小澈", "全息光球"], ["term", "小终", "终端窗口"], ["capsule", "罐罐", "胶囊机器人"], ["moon", "小月", "月牙夜灯"], ["cube", "方方", "立方体"], ["wisp", "数萤", "数据光"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc]), ...Object.entries(CHARS).map(([id, c]) => [id, c.name, c.desc])];
 const log = (...a) => console.log("[毛团]", ...a);
 
 // 从 Finder / 开始菜单启动时 PATH 很短，把常见的 node / uvx 位置补上（Agent SDK 要能找到 node）
@@ -45,7 +47,7 @@ fixPath();
 app.commandLine.appendSwitch("autoplay-policy", "no-user-gesture-required");
 if (!app.requestSingleInstanceLock()) app.quit();
 
-let store, brain, voice, pet, panel, tray, watcher, live2d, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
+let store, brain, voice, pet, panel, tray, watcher, live2d, charArt, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
 let bookReading = false;
 let working = null;
 let quitting = false, chatting = false, readSentences = [], reading = { active: false }, lastAgent = null, lastAgentAt = 0, petHidden = false;
@@ -80,8 +82,9 @@ async function init() {
     if (!list.length) return;
     if (!list.some(v => v.id === store.settings.sayVoice)) { const p = list.find(v => /Tingting|婷婷/i.test(v.id)) || list.find(v => v.lang === "zh_CN") || list[0]; store.patchSettings({ sayVoice: p.id }); }
   });
+  charArt = new CharArt({ store, dir: path.join(dataDir, "chars"), log, onProgress: p => sendPet("char:progress", p) });
   live2d = new Live2D({ dir: path.join(dataDir, "live2d"), log, onProgress: p => sendPet("live2d:progress", p) });
-  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), getStatus: () => ({ name: petName(), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
+  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), dirs: { chars: path.join(dataDir, "chars") }, getStatus: () => ({ name: petName(), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
   watcher.start();
   stt = new Stt({ store, dataDir, log, onProgress: text => sendPanel("stt:progress", { text }) });
   storyBook = new StoryBook({ store, dataDir, brain, log, onProgress: p => sendPanel("book:progress", p) });
@@ -184,7 +187,7 @@ function setPetHidden(h) { petHidden = h; if (!pet) return; if (h) { pet.hide();
 function skinMenu() { return SKIN_LIST.map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.skin === id, click: () => { store.patchSettings({ skin: id }); broadcastState(); onSkinChanged(id); } })); }
 // 换成有人设的角色：用它自己的声音打个招呼（Live2D 的等模型站好了再说）
 let greetPending = "";
-const charOf = id => L2D_MODELS[id] || null;
+const charOf = id => L2D_MODELS[id] || CHARS[id] || null;
 function greet(id) {
   if (store.settings.skin !== id) return;
   scene("scene:greet");
@@ -510,7 +513,7 @@ async function devShots() {
   try {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
-    for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); sendPet("pet:say", { text: "" }); await new Promise(r => setTimeout(r, 250)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
     if (process.env.MAOTUAN_DEVSTREAM) {   // 问一句长的，看气泡是不是一句一句冒
       const wait = ms => new Promise(r => setTimeout(r, ms));
       runChat(process.env.MAOTUAN_DEVSTREAM);
@@ -534,6 +537,14 @@ async function devShots() {
         for (const ev of evs) { sendPet("pet:scene", { ev }); await wait(500); await shot(pet, `scene-${id}-${ev.slice(6)}`); await wait(1600); }
       }
     }
+    if (process.env.MAOTUAN_DEVCHAR) {   // 画角色："ai_shiba,ai_cat" 或 "1"=全部
+      const want = process.env.MAOTUAN_DEVCHAR;
+      for (const id of Object.keys(CHARS)) {
+        if (want !== "1" && !want.split(",").includes(id)) continue;
+        try { const r = await charArt.ensure(id); log("DEVCHAR ok", id, r.frames.join(",")); for (const f of r.frames) fs.copyFileSync(charArt.file(id, f), path.join(dir, `char-${id}-${f}.jpg`)); }
+        catch (e) { log("DEVCHAR failed", id, e.message); }
+      }
+    }
     if (process.env.MAOTUAN_DEVBUBBLE) {   // 三个尺寸各来一句长话，看气泡会不会盖住它
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const text = process.env.MAOTUAN_DEVBUBBLE === "1" ? "你回来啦。你不在的时候，我数了一遍身上的毛，数到 97 就忘了，只好从头再数一次。" : process.env.MAOTUAN_DEVBUBBLE;
@@ -555,6 +566,10 @@ async function devShots() {
         store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(1600);
         const shown = await new Promise(r => { const t = setTimeout(() => r("?"), 2000); ipcMain.once("pet:whoami", (_e, d) => { clearTimeout(t); r(d && d.skin); }); sendPet("pet:whoami", {}); });
         log("DEVTAP", id, "渲染中的是", shown);
+        if (process.env.MAOTUAN_DEVDIAG && id.startsWith("l2d_")) {
+          const info = await new Promise(r => { const t = setTimeout(() => r(null), 3000); ipcMain.once("live2d:info", (_e, d) => { clearTimeout(t); r(d); }); sendPet("live2d:query", {}); });
+          log("DIAG", id, JSON.stringify(info && info.diag), "motions", JSON.stringify(info && info.motions));
+        }
         for (const ev of ["tap:0", "tap:1", "tap:2", "tap:3", "tap:many"]) {
           sendPet("pet:react", { ev }); await wait(420); await shot(pet, `tap-${id}-${ev.replace(":", "_")}`); await wait(1400);
         }
@@ -792,6 +807,10 @@ function wireIpc() {
   ipcMain.handle("stt:transcribe", async (_e, { pcm }) => {
     try { const arr = pcm instanceof Float32Array ? pcm : new Float32Array(pcm); const text = await stt.transcribe(arr); return { text }; }
     catch (e) { return { error: e.message || String(e) }; }
+  });
+  ipcMain.handle("char:ensure", async (_e, { id, frames }) => {
+    try { const r = await charArt.ensure(id, frames); const b = `http://127.0.0.1:${watcher.port}/chars/${id}/`; return { ok: true, frames: Object.fromEntries(r.frames.map(f => [f, b + f + ".jpg?v=" + fs.statSync(charArt.file(id, f)).mtimeMs])) }; }
+    catch (e) { log("[charart] ensure failed", id, e.message); return { ok: false, error: e.message }; }
   });
   ipcMain.handle("live2d:ensure", async (_e, { id }) => {
     try { const r = await live2d.ensure(id); const base = `http://127.0.0.1:${watcher.port}/live2d/`; return { ok: true, url: base + r.dir + "/" + r.file, core: base + "core/live2dcubismcore.min.js" }; }

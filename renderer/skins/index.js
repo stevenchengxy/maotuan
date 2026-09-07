@@ -16,6 +16,8 @@ import { makeWisp } from "./wisp.js";
 import { withFx } from "./withFx.js";
 import { SKIN_DEFAULTS } from "./names.js";
 import { withTaps } from "./taps.js";
+import { makeChar } from "./photoChar.js";
+import { CHARS } from "./charCatalog.js";
 const basic = id => { const d = withTaps(SKIN_DEFAULTS[id] || {}, id); return { ...d, character: d }; };
 
 export const SKINS = {
@@ -34,4 +36,5 @@ export const SKINS = {
 };
 for (const [id, sp] of Object.entries(SPRITES)) if (id !== "blob") SKINS[id] = { name: sp.name, make: makePixelSkin(id, basic(id)), desc: sp.desc };
 for (const [id, m] of Object.entries(L2D_MODELS)) SKINS[id] = { name: m.name, make: makeLive2D(id), desc: m.desc };
+for (const [id, c] of Object.entries(CHARS)) SKINS[id] = { name: c.name, make: makeChar(id), desc: c.desc };
 export function makeSkin(id, canvas, opts) { const s = SKINS[id] || SKINS.fluff; return s.make(canvas, opts); }

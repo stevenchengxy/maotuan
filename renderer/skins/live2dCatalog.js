@@ -199,6 +199,19 @@ export const L2D_MODELS = {
     style: "温和斯文的大哥哥，慢条斯理，用词讲究，偶尔推一下眼镜。",
     lines: { rps: { win: "我出{it}。承让。", lose: "我出{it}……输得心服口服。", tie: "都是{it}，看来想到一起去了。" }, dice: { win: "{it} 点对 {me} 点，运气站在我这边。", lose: "{it} 点……你的 {me} 点更胜一筹。", tie: "都是 {it} 点，平分秋色。" }, catch: { great: "{n} 个，身手不凡。", ok: "{n} 个，稳稳当当。", bad: "{n} 个……不急，慢慢来。" } }
   },
+  l2d_koharu: {
+    dir: "Koharu", file: "Koharu.model3.json", name: "小春", full: "小春 Koharu", gender: "女", desc: "Live2D · 啦啦队女孩", scale: 1.05, dy: 0, headY: 0.2,
+    base: "https://raw.githubusercontent.com/Live2D/CubismPhotographyApp/master/Assets/Live2D/Cubism/Samples/Models/",
+    // 这个模型的 model3.json 里没写动作，动作文件在 Animation/ 里，下载时补进去
+    addMotions: { Idle: ["Animation/body.motion3.json"], TapBody: ["Animation/face01.motion3.json", "Animation/face02.motion3.json"] },
+    ids: { cheek: "PARAM_CHEEK", eyeL: "PARAM_EYE_L_OPEN", eyeR: "PARAM_EYE_R_OPEN", mouthOpen: "PARAM_MOUTH_OPEN_Y", mouthForm: "PARAM_MOUTH_FORM", angleZ: "PARAM_ANGLE_Z", angleY: "PARAM_ANGLE_Y", bodyZ: "PARAM_BODY_ANGLE_Z", ballX: "PARAM_EYE_BALL_X", ballY: "PARAM_EYE_BALL_Y" },
+    theme: { love: "heart", colors: ["#F5A623", "#4A7FC1", "#FFFFFF"] },
+    moods: { happy: { params: { PARAM_EYE_L_SMILE: 1, PARAM_EYE_R_SMILE: 1, PARAM_MOUTH_FORM: 1, PARAM_CHEEK: 0.5 } }, thinking: { params: { PARAM_EYE_BALL_X: 0.6, PARAM_EYE_BALL_Y: 0.6, PARAM_ANGLE_Z: -8 } }, sleepy: { params: { PARAM_EYE_L_OPEN: 0, PARAM_EYE_R_OPEN: 0, PARAM_DROOL: 0.6 } } },
+    voice: { id: "lovely_girl", speed: 1.04, pitch: 1 },
+    greeting: "我是小春！我来给你加油！",
+    style: "啦啦队小女孩的口气，蹦蹦跳跳，句子短，爱用感叹号，会给你打气，也会撒娇。",
+    lines: { rps: { win: "我出{it}！我赢啦！", lose: "我出{it}……呜，输了。", tie: "都是{it}！再来一次！" }, dice: { win: "{it} 点！比你大！", lose: "{it} 点……你好厉害。", tie: "都是 {it} 点！" }, catch: { great: "{n} 个！好厉害呀！", ok: "{n} 个！不错不错！", bad: "{n} 个……再来一次嘛。" } }
+  },
   l2d_wanko: {
     dir: "Wanko", name: "年糕犬", full: "わんころもち Wankoromochi", gender: "犬", desc: "Live2D · 小狗", scale: 1.3, dy: 0, headY: 0.46,
     ids: { cheek: "PARAM_TERE", eyeL: "PARAM_EYE_L_OPEN", eyeR: "PARAM_EYE_R_OPEN", mouthOpen: "PARAM_MOUTH_OPEN_Y", mouthForm: "PARAM_MOUTH_FORM", angleZ: "PARAM_ANGLE_Z", angleY: "PARAM_ANGLE_Y", bodyZ: "PARAM_BODY_ANGLE_Z" },

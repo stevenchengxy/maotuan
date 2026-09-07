@@ -5,6 +5,28 @@ import { L2D_MODELS, L2D_BASES, L2D_CORE_URL } from "../renderer/skins/live2dCat
 // 把 Live2D 官方示例模型请到本机来：读 model3.json，把它引用的每个文件都下下来，放到 userData/live2d/<角色>/。
 // 顺便把 motion 里自带的日语配音（Sound）去掉——声音归毛团自己管。
 const BAD = /(^|[\\/])\.\.([\\/]|$)|^[\\/]|^[a-zA-Z]:/;
+// 有些官方示例动作文件的 Meta 是错的（小春那两段脸部动作写着 71 条曲线，实际只有 34 条），
+// Cubism 会照着这个数去读不存在的曲线，然后整段动作加载失败。存之前先按真实内容改回来。
+function fixMotion(buf, name, log = console.log) {
+  try {
+    const j = JSON.parse(buf.toString("utf8"));
+    const curves = j.Curves || [], meta = j.Meta || {};
+    let segs = 0, pts = 0;
+    for (const c of curves) {
+      const s = c.Segments || []; pts++;   // 起点
+      for (let k = 2; k < s.length;) {
+        const type = s[k]; segs++;
+        if (type === 1) { pts += 3; k += 7; } else { pts += 1; k += 3; }
+      }
+    }
+    const want = { CurveCount: curves.length, TotalSegmentCount: Math.max(meta.TotalSegmentCount || 0, segs), TotalPointCount: Math.max(meta.TotalPointCount || 0, pts) };
+    if (meta.CurveCount === want.CurveCount && meta.TotalSegmentCount >= segs && meta.TotalPointCount >= pts) return buf;
+    log("[live2d] 修了动作文件的 Meta:", name, meta.CurveCount, "→", want.CurveCount);
+    j.Meta = { ...meta, ...want };
+    return Buffer.from(JSON.stringify(j), "utf8");
+  } catch (e) { return buf; }
+}
+
 export class Live2D {
   constructor({ dir, log = console.log, onProgress }) {
     this.dir = dir; this.log = log; this.onProgress = onProgress; this.jobs = new Map(); this.bases = [...L2D_BASES];
@@ -23,10 +45,10 @@ export class Live2D {
       return Buffer.concat(chunks);
     } finally { clearTimeout(t); }
   }
-  // 官方 GitHub 和 jsDelivr 镜像轮着试；哪个先成功以后就先用哪个
-  async fetchAny(rel, onBytes) {
+  // 官方 GitHub 和 jsDelivr 镜像轮着试；哪个先成功以后就先用哪个。模型自带 base 的（放在别的官方仓库里）就只用它。
+  async fetchAny(rel, onBytes, bases) {
     let err;
-    for (const b of this.bases) {
+    for (const b of (bases || this.bases)) {
       try { const buf = await this.fetchBuf(b + rel, onBytes); if (this.bases[0] !== b) this.bases = [b, ...this.bases.filter(x => x !== b)]; return buf; }
       catch (e) { err = e; this.log("[live2d] fetch failed", b + rel, e.message); }
     }
@@ -56,7 +78,14 @@ export class Live2D {
       report(0, "引擎");
       await this.ensureCore(report);
       const rel = m.dir + "/";
-      const json = JSON.parse((await this.fetchAny(rel + file)).toString("utf8"));
+      const bases = m.base ? [m.base] : null;
+      const json = JSON.parse((await this.fetchAny(rel + file, null, bases)).toString("utf8"));
+      // 有些官方模型的 model3.json 里没登记动作（动作文件单独放着），这里补上
+      if (m.addMotions) {
+        json.FileReferences = json.FileReferences || {};
+        const mo = json.FileReferences.Motions = json.FileReferences.Motions || {};
+        for (const [group, list] of Object.entries(m.addMotions)) mo[group] = (mo[group] || []).concat(list.map(f => ({ File: f })));
+      }
       const fr = json.FileReferences || {}; const files = new Set();
       for (const k of ["Moc", "Physics", "Pose", "DisplayInfo", "UserData"]) if (fr[k]) files.add(fr[k]);
       for (const t of fr.Textures || []) files.add(t);
@@ -68,8 +97,8 @@ export class Live2D {
         const dest = path.join(dir, f);
         if (!(fs.existsSync(dest) && fs.statSync(dest).size > 0)) {
           fs.mkdirSync(path.dirname(dest), { recursive: true });
-          const buf = await this.fetchAny(rel + f, (got, total) => report(10 + (i + (total ? got / total : 0)) / list.length * 90, f));
-          fs.writeFileSync(dest, buf);
+          const buf = await this.fetchAny(rel + f, (got, total) => report(10 + (i + (total ? got / total : 0)) / list.length * 90, f), bases);
+          fs.writeFileSync(dest, /\.motion3\.json$/.test(f) ? fixMotion(buf, f, this.log) : buf);
         }
         i++; report(10 + i / list.length * 90, f);
       }
