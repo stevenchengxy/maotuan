@@ -132,7 +132,7 @@ def main():
         lines.append("    ],")
         lines.append("    tapLines: " + json.dumps(e["tapLines"], ensure_ascii=False) + ",")
         if e.get("manyTap"):
-            lines.append("    // 连点：" + e["manyTap"]["note"])
+            lines.append("    // 连点：" + e["manyTap"]["note"].removeprefix("连点：").strip())
             lines.append("    manyTap: { actions: " + json.dumps(e["manyTap"]["actions"], ensure_ascii=False) + " },")
         if e.get("manyLine"): lines.append("    manyLine: " + json.dumps(e["manyLine"], ensure_ascii=False) + ",")
         lines.append("  },")
