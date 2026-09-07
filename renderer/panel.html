@@ -441,7 +441,7 @@ function renderSettings() {
   const skins = el("div", { class: "skins" });
   for (const k of state.skins) { const d = el("div", { class: "skin" + (s.skin === k.id ? " on" : ""), onclick: () => set({ skin: k.id }) }, k.name); d.append(el("small", {}, k.desc || "")); skins.append(d); }
   const sizeIn = el("input", { type: "range", min: 0.6, max: 1.8, step: 0.1, value: s.petScale || 1, onchange: e => set({ petScale: Number(e.target.value) }) });
-  root.append(card("它的名字和样子", el("div", { class: "row" }, nameIn, el("button", { class: "btn small", onclick: () => api.invoke("name:set", { name: nameIn.value }) }, "改好了")), skins,
+  root.append(card("它的名字和样子", el("div", { class: "row" }, nameIn, el("button", { class: "btn small", onclick: () => api.invoke("name:set", { name: nameIn.value }) }, "改好了")), el("div", { class: "hint" }, "每个样子有自己的名字和性子：日和就叫日和、钢铁侠就是钢铁侠；这里改的是当前这个样子的名字，清空就恢复默认。"), skins,
     el("div", { class: "hint" }, "带 Live2D 字样的二次元角色，第一次选中会从 Live2D 官方下载模型（几 MB，稍等一会儿）。角色模型 © Live2D Inc.，官方免费示例。"),
     field("它的大小（右键它也能调）", sizeIn),
     el("div", { class: "hint" }, "鼠标在它身上蹭是摸；按住拖是抱走，甩出去它会飞；点一下开聊天；双击转圈；右键有菜单。")));

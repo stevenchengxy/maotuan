@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { petNameOf } from "./persona.js";
 
 // 唱歌：脑子写一小段歌词，MiniMax 音乐模型（music-3.0-free 免费）合成带人声的小歌
 export class Singer {
@@ -8,7 +9,7 @@ export class Singer {
     this.store = store; this.dir = path.join(dataDir, "songs"); fs.mkdirSync(this.dir, { recursive: true }); this.brain = brain; this.log = log;
   }
   async writeLyrics(theme) {
-    const name = this.store.get("name") || "毛毛";
+    const name = petNameOf(this.store.data);
     const j = await this.brain.oneShot([
       `你是「${name}」，一只住在桌面上的小宠物。主人想听你唱一首关于「${theme}」的小歌。`,
       "写一首很短的儿歌风格的小歌：两段主歌各 2 到 4 行、一段副歌 2 到 4 行，每行 6 到 12 个字，口语、押韵、有画面、别说教。可以在副歌里唱到自己的名字。",

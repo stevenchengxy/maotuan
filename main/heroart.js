@@ -13,11 +13,11 @@ const POSES = {
   lose: "disappointed pose facing the camera, head bowed, shoulders slumped"
 };
 const LOOK = {
-  hero_iron: "a futuristic armored superhero in glossy red and gold metallic power armor with a glowing white-blue circular arc reactor on the chest and a sleek helmet with glowing eye slits",
-  hero_spider: "an agile superhero in a form-fitting red and blue textured suit with a black web pattern and large white reflective eye lenses on the mask",
+  hero_iron: "a futuristic armored superhero in glossy red and gold metallic power armor with a glowing white-blue circular arc reactor on the chest and a sleek helmet with glowing eye slits, thruster ports on the palms and boots",
+  hero_spider: "an athletic young superhero with a lean gymnast physique wearing the iconic bright red and royal blue spandex suit: the red areas covered with a fine black web-line pattern, a large black spider emblem on the chest, and a red full-head mask with black web lines and two large white teardrop-shaped eye lenses outlined in black (no visible skin, no helmet)",
   hero_hulk: "a massive muscular green-skinned giant man with dark hair, torn purple pants and an intense expression",
-  hero_loki: "a pale, sly male trickster god with slicked black hair in dark green and gold leather armor, wearing a tall golden horned helmet and holding a golden scepter with a glowing blue gem",
-  hero_thor: "a mighty blond, bearded thunder god with long hair in silver scale armor and a flowing red cape, holding a large square-headed war hammer crackling with lightning",
+  hero_loki: "a strikingly handsome, elegant male trickster god in his late twenties with pale flawless skin, high sharp cheekbones, piercing green eyes, slicked-back jet-black shoulder-length hair and a knowing sly smile, wearing ornate dark green and gold Asgardian leather armor, a tall golden horned helmet and a flowing dark green cape, holding a golden scepter with a glowing blue gem",
+  hero_thor: "a young, movie-star handsome thunder god, about 30 years old, with a clean strong jawline, bright blue eyes, long golden-blond hair, a short neatly trimmed beard and a confident calm expression, athletic muscular build, wearing sleek silver scale armor with a flowing red cape, holding a large square-headed war hammer crackling with lightning",
   hero_jarvis: "a floating holographic artificial intelligence core: a luminous translucent blue sphere wrapped in slowly rotating rings of light and tiny data glyphs, hovering in mid-air"
 };
 export class HeroArt {
@@ -41,8 +41,15 @@ export class HeroArt {
       if (!this.has(id, pose)) {
         report(Math.round(i / poses.length * 100), pose);
         const prompt = `${LOOK[id]}, ${POSES[pose] || POSES.idle}, ${BASE.replace("{SCREEN}", SCREEN[id] || "green (#00FF00)")}`;
-        try { await generateImage(this.store, { prompt, aspect: "9:16", file: this.file(id, pose) }); this.log("[heroart] generated", id, pose); }
-        catch (e) { this.log("[heroart] failed", id, pose, e.message); if (pose === "idle") throw e; }
+        // 待机图先出；得意 / 沮丧参照待机图（subject_reference），脸和衣服才是同一个人
+        let reference = null;
+        if (pose !== "idle" && this.has(id, "idle")) reference = "data:image/jpeg;base64," + fs.readFileSync(this.file(id, "idle")).toString("base64");
+        try { await generateImage(this.store, { prompt: reference ? "the same character as the reference image, " + prompt : prompt, aspect: "9:16", file: this.file(id, pose), reference }); this.log("[heroart] generated", id, pose, reference ? "(ref)" : ""); }
+        catch (e) {
+          this.log("[heroart] failed", id, pose, e.message);
+          if (reference) { try { await generateImage(this.store, { prompt, aspect: "9:16", file: this.file(id, pose) }); this.log("[heroart] generated", id, pose, "(no ref)"); } catch (e2) { this.log("[heroart] failed again", id, pose, e2.message); } }
+          if (pose === "idle" && !this.has(id, "idle")) throw e;
+        }
       }
       i++; if (this.has(id, pose)) done.push(pose);
     }

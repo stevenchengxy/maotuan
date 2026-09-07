@@ -19,6 +19,8 @@ import { Live2D } from "./live2d.js";
 import { HeroArt } from "./heroart.js";
 import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
 import { HEROES } from "../renderer/skins/heroCatalog.js";
+import { petNameOf } from "./persona.js";
+const petName = () => petNameOf(store.data);
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -70,7 +72,7 @@ async function init() {
   if (!SKIN_LIST.some(([id]) => id === store.settings.skin)) store.patchSettings({ skin: "fluff" });   // 皮肤下架了就换回毛团
   toolsServer = {
     command: process.execPath, args: [path.join(ROOT, "mcp", "maotuan-tools.js")],
-    env: { ELECTRON_RUN_AS_NODE: "1", MAOTUAN_DATA: dataDir, MAOTUAN_PORT: String(store.settings.watcherPort || 47831), MAOTUAN_NAME: store.get("name") }
+    env: { ELECTRON_RUN_AS_NODE: "1", MAOTUAN_DATA: dataDir, MAOTUAN_PORT: String(store.settings.watcherPort || 47831), MAOTUAN_NAME: petName() }
   };
   setBrain(store.settings.brain);
   voice = new Voice({ store, dataDir, player, log });
@@ -81,7 +83,7 @@ async function init() {
   });
   live2d = new Live2D({ dir: path.join(dataDir, "live2d"), log, onProgress: p => sendPet("live2d:progress", p) });
   heroArt = new HeroArt({ store, dir: path.join(dataDir, "heroes"), log, onProgress: p => sendPet("hero:progress", p) });
-  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), dirs: { heroes: path.join(dataDir, "heroes") }, getStatus: () => ({ name: store.get("name"), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
+  watcher = new Watcher({ port: store.settings.watcherPort || 47831, log, onEvent: onWatcherEvent, staticDir: path.join(dataDir, "live2d"), dirs: { heroes: path.join(dataDir, "heroes") }, getStatus: () => ({ name: petName(), pets: store.get("pets"), fed: store.get("fed"), brain: store.settings.brain, skin: store.settings.skin, talking: !voice.idle, reading: reading.active, lastAgent }) });
   watcher.start();
   stt = new Stt({ store, dataDir, log, onProgress: text => sendPanel("stt:progress", { text }) });
   storyBook = new StoryBook({ store, dataDir, brain, log, onProgress: p => sendPanel("book:progress", p) });
@@ -188,12 +190,12 @@ function greet(id) {
   const c = charOf(id); if (!c || !c.greeting || store.settings.muted || store.settings.skin !== id) return;
   voice.stop(); sendPet("pet:say", { text: c.greeting }); voice.speak(c.greeting, { emotion: "happy" });
 }
-function onSkinChanged(id) { greetPending = ""; if (!charOf(id)) return; if (id.startsWith("l2d_")) greetPending = id; else greet(id); }
+function onSkinChanged(id) { greetPending = ""; if (toolsServer) toolsServer.env.MAOTUAN_NAME = petName(); if (tray) tray.setToolTip(petName()); if (!charOf(id)) return; if (id.startsWith("l2d_")) greetPending = id; else greet(id); }
 function brainMenu() { return [["claude", "Claude"], ["codex", "Codex"]].map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.brain === id, click: () => { setBrain(id); broadcastState(); } })); }
 function commonMenu() {
   const s = store.settings;
   return [
-    { label: `和${store.get("name")}聊聊`, click: () => showPanel("chat") },
+    { label: `和${petName()}聊聊`, click: () => showPanel("chat") },
     { label: "喂它读点东西", click: () => showPanel("feed") },
     { label: "摸摸它", click: () => sendPet("pet:pet") },
     { type: "separator" },
@@ -211,7 +213,7 @@ function commonMenu() {
 function createTray() {
   if (IS_MAC) { tray = new Tray(nativeImage.createEmpty()); tray.setTitle("🧶"); }
   else { const img = nativeImage.createFromPath(path.join(ROOT, "assets", "icon.png")); tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img.resize({ width: 16, height: 16 })); }
-  tray.setToolTip(store.get("name"));
+  tray.setToolTip(petName());
   refreshTray();
   tray.on("click", () => togglePanel());
 }
@@ -244,7 +246,7 @@ function publicState() {
   const d = store.data; const m = mcpFor();
   const status = Object.fromEntries((brain.mcpStatus || []).map(s => [s.name, s.status]));
   return {
-    name: d.name, born: d.born, pets: d.pets, fed: d.fed, platform: process.platform,
+    name: petName(), defaultName: d.name, born: d.born, pets: d.pets, fed: d.fed, platform: process.platform,
     doc: d.doc ? { title: d.doc.title, kind: d.doc.kind, chars: d.doc.chars, oneLine: d.doc.oneLine, points: d.doc.points, intro: d.doc.intro, pos: d.doc.pos || 0, hasText: !!d.doc.text } : null,
     settings: d.settings,
     secrets: Object.fromEntries(Object.keys(d.secrets).map(k => [k, true])), hints: d.hints || {},
@@ -535,7 +537,7 @@ async function devShots() {
     }
     log("shots saved to", dir); log("state:", JSON.stringify(publicState()).slice(0, 500));
     if (process.env.MAOTUAN_DEVCHAT) await runChat(process.env.MAOTUAN_DEVCHAT);
-    if (process.env.MAOTUAN_DEVSAY) voice.speak("我是" + store.get("name") + "。你好呀。");
+    if (process.env.MAOTUAN_DEVSAY) voice.speak("我是" + petName() + "。你好呀。");
     if (process.env.MAOTUAN_DEVVOICES) {
       try {
         const probe = await voice.probeHosts(); log("PROBE", JSON.stringify(probe));
@@ -548,7 +550,7 @@ async function devShots() {
         for (const id of want) {
           voice.stop(); voice.lastError = "";
           sendPet("pet:say", { text: "音色：" + nameOf(id) });
-          voice.enqueue(`这个声音叫${nameOf(id)}。你好呀，我是${store.get("name")}，今天也在这儿陪你。`, { provider: "minimax", voiceId: id });
+          voice.enqueue(`这个声音叫${nameOf(id)}。你好呀，我是${petName()}，今天也在这儿陪你。`, { provider: "minimax", voiceId: id });
           await new Promise(r => setTimeout(r, 7000));
           log("AUDITION", id, "|", nameOf(id), "|", voice.lastError ? "ERR " + voice.lastError : "ok");
         }
@@ -603,7 +605,7 @@ function wireIpc() {
   ipcMain.on("voice:ended", (_e, { id }) => { const r = pending.get(id); if (r) { pending.delete(id); r(); } });
 
   ipcMain.handle("state:get", () => publicState());
-  ipcMain.handle("name:set", (_e, { name }) => { store.set("name", (name || "").trim().slice(0, 8) || "毛毛"); toolsServer.env.MAOTUAN_NAME = store.get("name"); if (tray) tray.setToolTip(store.get("name")); broadcastState(); return true; });
+  ipcMain.handle("name:set", (_e, { name }) => { const v = (name || "").trim().slice(0, 8); const names = { ...(store.get("names") || {}) }; if (v) names[store.settings.skin] = v; else delete names[store.settings.skin]; store.set("names", names); if (store.settings.skin === "fluff") store.set("name", v || "毛毛"); toolsServer.env.MAOTUAN_NAME = petName(); if (tray) tray.setToolTip(petName()); broadcastState(); return true; });
   ipcMain.handle("settings:set", (_e, patch) => {
     const before = { brain: store.settings.brain, hotkey: store.settings.hotkey, skin: store.settings.skin };
     store.patchSettings(patch || {}); voice.lastError = "";
@@ -643,13 +645,13 @@ function wireIpc() {
   ipcMain.handle("read:resume", () => { voice.resume(); return true; });
   ipcMain.handle("read:stop", () => { stopReading(false); return true; });
 
-  ipcMain.handle("voice:test", async (_e, { text }) => { voice.stop(); voice.lastError = ""; voice.speak(text || `我是${store.get("name")}。你好呀，今天过得怎么样？`); await new Promise(r => setTimeout(r, 1800)); return { provider: voice.provider(), error: voice.lastError || "" }; });
+  ipcMain.handle("voice:test", async (_e, { text }) => { voice.stop(); voice.lastError = ""; voice.speak(text || `我是${petName()}。你好呀，今天过得怎么样？`); await new Promise(r => setTimeout(r, 1800)); return { provider: voice.provider(), error: voice.lastError || "" }; });
   ipcMain.handle("voice:stop", () => { voice.stop(); return true; });
   ipcMain.handle("voice:probe", async () => { const r = await voice.probeHosts(); broadcastState(); return r; });
   ipcMain.handle("voice:audition", async (_e, { voiceId, text }) => {
     if (!voiceId) return { error: "没有 voice_id" };
     voice.stop(); voice.lastError = "";
-    voice.enqueue(text || `你好呀，我是${store.get("name")}。今天也在这儿陪你。`, { provider: "minimax", voiceId });
+    voice.enqueue(text || `你好呀，我是${petName()}。今天也在这儿陪你。`, { provider: "minimax", voiceId });
     await new Promise(r => setTimeout(r, 2500));
     return { error: voice.lastError || "" };
   });

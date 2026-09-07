@@ -53,6 +53,9 @@ export function makeFx(getGeom) {
   const shake = (o = {}) => layers.push({ type: "shake", t: 0, dur: 0.45, amp: 5, ...o });
   const hud = (o = {}, ctx) => layer("hud", { dur: 1.8, color: "#7FD0FF", r: 60, ...o }, ctx);
   const clone = (o = {}, ctx) => layer("clone", { dur: 1.4, color: "#3DDC84", ...o }, ctx);
+  const beam = (o = {}, ctx) => layer("beam", { dur: 0.55, color: "#BFEFFF", core: "#FFFFFF", width: 22, at: "handR", ...o }, ctx);
+  const cracks = (o = {}, ctx) => layer("cracks", { dur: 1.6, color: "#3E2F28", n: 8, len: 90, at: "feet", ...o }, ctx);
+  const grid = (o = {}, ctx) => layer("grid", { dur: 1.8, color: "#4FC3F7", at: "feet", ...o }, ctx);
 
   function tick(dt) {
     for (let i = parts.length - 1; i >= 0; i--) {
@@ -85,6 +88,9 @@ export function makeFx(getGeom) {
       else if (l.type === "web") { const a = Math.min(1, l.t * 8) * fadeOut; ctx.globalAlpha = a; ctx.strokeStyle = l.color; ctx.lineWidth = 1.6; const tx = l.tx ?? l.x + 120, ty = l.ty ?? l.y - 120; const reach = Math.min(1, l.t * 5); const ex = l.x + (tx - l.x) * reach, ey = l.y + (ty - l.y) * reach; ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke(); if (reach >= 1) { ctx.translate(tx, ty); for (let i = 0; i < 8; i++) { const ang = i / 8 * TAU; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(ang) * 14, Math.sin(ang) * 14); ctx.stroke(); } for (const rr of [5, 10]) { ctx.beginPath(); for (let i = 0; i <= 8; i++) { const ang = i / 8 * TAU; const px = Math.cos(ang) * rr, py = Math.sin(ang) * rr; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.stroke(); } } }
       else if (l.type === "hud") { const a = Math.min(1, l.t * 3) * Math.min(1, fadeOut * 3); ctx.globalAlpha = a * 0.9; ctx.strokeStyle = l.color; ctx.lineWidth = 1.5; ctx.translate(l.x, l.y); for (const [rr, dir, dash] of [[l.r, 1, [14, 8]], [l.r * 0.8, -1.4, [4, 6]], [l.r * 1.15, 0.6, [30, 40]]]) { ctx.save(); ctx.rotate(l.t * dir); ctx.setLineDash(dash); ctx.beginPath(); ctx.arc(0, 0, rr, 0, TAU); ctx.stroke(); ctx.restore(); } for (let i = 0; i < 4; i++) { const ang = i / 4 * TAU + l.t * 0.8; ctx.beginPath(); ctx.moveTo(Math.cos(ang) * l.r * 0.9, Math.sin(ang) * l.r * 0.9); ctx.lineTo(Math.cos(ang) * l.r * 1.05, Math.sin(ang) * l.r * 1.05); ctx.stroke(); } }
       else if (l.type === "clone") { /* 由皮肤自己画分身，这里只留时间轴 */ }
+      else if (l.type === "beam") { const grow = Math.min(1, l.t / 0.12); const tx = l.tx ?? l.x + 360, ty = l.ty ?? l.y - 180; const ex = l.x + (tx - l.x) * grow, ey = l.y + (ty - l.y) * grow; ctx.lineCap = "round"; for (const [w, c, a] of [[l.width * 2.2, l.color, 0.25], [l.width, l.color, 0.7], [l.width * 0.35, l.core, 1]]) { ctx.globalAlpha = a * fadeOut; ctx.strokeStyle = c; ctx.lineWidth = w * (0.8 + 0.2 * Math.sin(l.t * 60)); ctx.beginPath(); ctx.moveTo(l.x, l.y); ctx.lineTo(ex, ey); ctx.stroke(); } const gr = ctx.createRadialGradient(l.x, l.y, 0, l.x, l.y, l.width * 2.5); gr.addColorStop(0, l.core); gr.addColorStop(0.4, l.color); gr.addColorStop(1, "rgba(255,255,255,0)"); ctx.globalAlpha = fadeOut; ctx.fillStyle = gr; ctx.beginPath(); ctx.arc(l.x, l.y, l.width * 2.5, 0, TAU); ctx.fill(); }
+      else if (l.type === "cracks") { const a = Math.min(1, l.t * 6) * Math.min(1, fadeOut * 2); ctx.globalAlpha = a; ctx.strokeStyle = l.color; ctx.lineWidth = 2.2; ctx.lineJoin = "round"; const grow = Math.min(1, l.t * 4); for (let i = 0; i < l.n; i++) { const ang = i / l.n * TAU + 0.4; const len = l.len * (0.6 + 0.4 * Math.sin(i * 2.3)) * grow; ctx.beginPath(); ctx.moveTo(l.x, l.y); let px = l.x, py = l.y; const segs = 4; for (let k = 1; k <= segs; k++) { const r = len * k / segs; const jit = Math.sin(i * 7.7 + k * 3.1) * 9; px = l.x + Math.cos(ang) * r + jit; py = l.y + Math.sin(ang) * r * 0.32 + jit * 0.3; ctx.lineTo(px, py); } ctx.stroke(); if (i % 2 === 0) { const ang2 = ang + 0.5; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(ang2) * 18 * grow, py + Math.sin(ang2) * 6 * grow); ctx.stroke(); } } }
+      else if (l.type === "grid") { const a = Math.min(1, l.t * 3) * Math.min(1, fadeOut * 2) * 0.7; ctx.globalAlpha = a; ctx.strokeStyle = l.color; ctx.lineWidth = 1; const w = 170, depth = 60; for (let i = 0; i <= 4; i++) { const k = i / 4; const y = l.y - depth * k * k; const hw = w * (1 - k * 0.55); ctx.globalAlpha = a * (1 - k * 0.6); ctx.beginPath(); ctx.moveTo(l.x - hw, y); ctx.lineTo(l.x + hw, y); ctx.stroke(); } for (let i = -3; i <= 3; i++) { ctx.globalAlpha = a * 0.7; ctx.beginPath(); ctx.moveTo(l.x + i * w / 3, l.y); ctx.lineTo(l.x + i * w / 3 * 0.45, l.y - depth); ctx.stroke(); } const sweep = (l.t * 1.2) % 1; ctx.globalAlpha = a; ctx.fillStyle = l.color; ctx.fillRect(l.x - w * (1 - sweep * 0.55), l.y - depth * sweep * sweep - 1, w * 2 * (1 - sweep * 0.55), 2); }
       ctx.restore();
     }
   }
@@ -118,7 +124,7 @@ export function makeFx(getGeom) {
     }
   }
   function clear() { parts.length = 0; layers.length = 0; }
-  const ops = { burst, shower, rise, ring, glow, lines, cloud, flash, bolt, magic, text, web, shake, hud, clone };
+  const ops = { burst, shower, rise, ring, glow, lines, cloud, flash, bolt, magic, text, web, shake, hud, clone, beam, cracks, grid };
   // 让配置表能写 ["burst","petal",20,{...}] 这种
   function run(list, ctx) { for (const [op, ...args] of list || []) { const f = ops[op]; if (!f) continue; if (op === "burst" || op === "shower" || op === "rise") f(args[0], args[1], args[2] || {}, ctx); else if (op === "text") f(args[0], args[1] || {}, ctx); else f(args[0] || {}, ctx); } }
   return { ...ops, run, tick, drawLayers, drawParts, shakeOffset, clear, parts, layers };

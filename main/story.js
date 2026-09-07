@@ -2,15 +2,16 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { excerpt } from "./text.js";
+import { petNameOf } from "./persona.js";
 
 // MiniMax image-01：文字 → 一张图（jpg 文件）
-export async function generateImage(store, { prompt, aspect = "4:3", file }) {
+export async function generateImage(store, { prompt, aspect = "4:3", file, reference }) {
   const s = store.settings;
   const key = store.getSecret("minimaxKey");
   if (!key) throw new Error("没有 MiniMax key");
   const host = (s.minimaxHost || "https://api.minimaxi.com").replace(/\/+$/, "");
   const url = host + "/v1/image_generation" + (s.minimaxGroupId ? "?GroupId=" + encodeURIComponent(s.minimaxGroupId) : "");
-  const res = await fetch(url, { method: "POST", headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ model: "image-01", prompt, aspect_ratio: aspect, response_format: "base64", n: 1, prompt_optimizer: true }), signal: AbortSignal.timeout(120000) });
+  const res = await fetch(url, { method: "POST", headers: { "Authorization": "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ model: "image-01", prompt, aspect_ratio: aspect, response_format: "base64", n: 1, prompt_optimizer: true, ...(reference ? { subject_reference: [{ type: "character", image_file: reference }] } : {}) }), signal: AbortSignal.timeout(180000) });
   const j = await res.json();
   if (!j || !j.base_resp || j.base_resp.status_code !== 0) throw new Error("minimax " + (j && j.base_resp ? j.base_resp.status_code + " " + j.base_resp.status_msg : res.status));
   const b64 = j.data && j.data.image_base64 && j.data.image_base64[0];
@@ -32,7 +33,7 @@ export class StoryBook {
     const key = crypto.createHash("sha1").update(doc.text.slice(0, 5000) + pages).digest("hex").slice(0, 12);
     const dir = path.join(this.dir, key); fs.mkdirSync(dir, { recursive: true });
     this.onProgress({ done: 0, total: pages + 1, text: "请脑子把故事改写成 " + pages + " 页……" });
-    const name = this.store.get("name") || "毛毛";
+    const name = petNameOf(this.store.data);
     const prompt = [
       `你是「${name}」，要把下面的故事讲给一个五六岁的小朋友听，做成绘本。`,
       `改写成 ${pages} 页：每页 70 到 120 字，口语、短句、有画面感，可以有一点点重复和拟声词；不要说教，不要复杂的词。`,
