@@ -5,6 +5,7 @@ import crypto from "node:crypto";
 import { execFile } from "node:child_process";
 import { splitSentences, stripEmotion } from "./text.js";
 import { L2D_MODELS } from "../renderer/skins/live2dCatalog.js";
+import { SKIN_DEFAULTS } from "../renderer/skins/names.js";
 
 // 声音：MiniMax 合成，本地 say 兜底；一句一句排队念，边合成下一句边放这一句
 export class Voice {
@@ -25,7 +26,7 @@ export class Voice {
   charVoice() {
     const s = this.store.settings;
     if (s.charVoice === false) return null;
-    const c = L2D_MODELS[s.skin];
+    const c = L2D_MODELS[s.skin] || SKIN_DEFAULTS[s.skin];
     return c && c.voice && c.voice.id ? c.voice : null;
   }
   provider(kind = "chat") {

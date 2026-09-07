@@ -511,6 +511,11 @@ async function devShots() {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
     for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    if (process.env.MAOTUAN_DEVSTREAM) {   // 问一句长的，看气泡是不是一句一句冒
+      const wait = ms => new Promise(r => setTimeout(r, ms));
+      runChat(process.env.MAOTUAN_DEVSTREAM);
+      for (let i = 0; i < 8; i++) { await wait(3000); await shot(pet, `stream-${i}`); }
+    }
     if (process.env.MAOTUAN_DEVWORK) {   // "文件夹::任务"
       const [dir, task] = process.env.MAOTUAN_DEVWORK.split("::");
       store.patchSettings({ workDir: dir });
