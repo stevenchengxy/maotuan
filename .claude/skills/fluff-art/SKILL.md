@@ -7,6 +7,7 @@ description: 毛团（桌面小宠物）的外观规范与打磨流程。改它�
 
 现在的皮肤都在 `renderer/skins/`，接口一样（`make(canvas, opts)` 返回 `{S, hit, petAt, geometry, spawn, setMouth, setMood, poke, land, spin, destroy}`）：
 
+- 桌面助手（新，都走 vectorBase）：`orb.js` 光球（三圈真按 3D 算的轨道环）、`term.js` 小终端（CRT 屏 + 滚动绿字）、`capsule.js` 胶囊机器人、`cube.js` 等距立方体、`wisp.js` 数据光点云、`moon.js` 月牙夜灯。每个文件自带一份 SELF 资料（名字 / 口气 / taps / 音色），再用 `withTaps(SKIN_DEFAULTS[id], id)` 让 tapTables.js 能覆盖它。
 - 手绘（矢量）：`fluff.js` 毛团（下面这份规范主要说它）、`jelly.js` 水母、`slime.js` 史莱姆、`ghost.js` 小幽灵、`robot.js` 小机器人。后三个基于 `vectorBase.js`（共用状态机 / 眨眼 / 小动作 / 粒子 / 脸部件），只写身体和脸。
 - 像素：`pixelFamily.js` 引擎 + `sprites.js` 图纸。`blob` 是照着用户给的参考图做的：平涂紫色 `#8360F7`、两个 2×2 的黑方块眼睛、平时没有嘴、没有腮红、**没有方框**（用户明确不要方框）。其它像素图纸：pjelly / pcat / pghost / probot / pslime。嘴只在说话、打哈欠时出现。
 - 二次元 Live2D：`live2d.js` + `live2dCatalog.js`。不是画的，是 Live2D 官方免费示例模型（Hiyori / Haru / Rice / Mao / Mark / Natori / Wanko），主进程 `main/live2d.js` 第一次用时下载到 `userData/live2d/`，`main/watcher.js` 的 `/live2d/` 静态口喂给渲染层；渲染层在 `#stage` 底下垫一张 WebGL 画布交给 pixi.js + pixi-live2d-display，原来的 2D 画布只画粒子和下载进度。表情、待机动作是模型自带；嘴（`ParamMouthOpenY`）、眼（睡觉闭眼）、脸红（`ParamCheek`）、看向（`model.focus`）、拎起来晃（`ParamAngleZ`）在 `beforeModelUpdate` 里每帧盖上去；蹦 / 落地压扁 / 转圈动的是模型容器的位移、缩放、旋转。Cubism 5.3 的新格式（moc3 v6，如 Ren）当前引擎不认，别加。
@@ -75,3 +76,5 @@ description: 毛团（桌面小宠物）的外观规范与打磨流程。改它�
 - 不要让它"死"或"生病"；情绪只在 idle / happy / sleepy / thinking / reading 之间。
 - 不要用技术梗给它配台词。
 - 点击反应：`tapTables.js`（生成物，别手改；改设计就改 `/tmp/taps.json` 那样的 JSON 再跑 `python3 scripts/merge-taps.py <json>`）。每个皮肤 `taps` 几个变体轮播、`tapLines` 台词、`manyTap`/`manyLine` 连点五下的特殊反应。`taps.js` 的 `withTaps(def, id)` 把它并进角色资料，`expandTaps` 摊平成 `tap:0..n` / `tap:many` 事件。手绘皮肤的特效层在 `vectorBase.js` 里（`fluff`/`jelly` 走 `withFx.js` 外挂一层），像素在 `pixelFamily.js` 里。
+- 场景反应：`tapTables.js` 里每只还有 `scenes`（scene:greet / back / bored / think / done / feed / night / listen）和 `sceneLines`。主进程在真实时刻调 `scene("scene:xxx")`（换皮肤、主人回来、发呆、开始想、watcher 收到跑完、喂文件、深夜、按住麦克风），渲染层 `pet:scene` 收到后播反应并说该角色自己的那句。
+- 动作词汇：每只最多一个 tap 变体能用 `hop`，其余必须用 squash / spin / look / 特效节奏表达——这是"点谁都在跳"那次返工定下的规矩，改表时别破。

@@ -25,7 +25,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
 const PRELOAD = path.join(ROOT, "renderer", "preload.cjs");
 const IS_MAC = process.platform === "darwin";
-const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc])];
+const SKIN_LIST = [["fluff", "毛团", "羊毛毡的圆毛球"], ["jelly", "水母", "半透明的小水母"], ["blob", "像素团", "照着参考图做的紫色像素团"], ["pjelly", "像素水母", "像素风，触手会摆"], ["pcat", "像素猫", "像素风，有耳朵和小鼻子"], ["pghost", "像素幽灵", "像素风，裙边会动"], ["probot", "像素机器人", "像素风，眼睛是两条灯"], ["pslime", "像素史莱姆", "像素风，绿绿的"], ["slime", "史莱姆", "手绘，果冻一样会晃"], ["ghost", "小幽灵", "手绘，半透明，裙边会飘"], ["robot", "小机器人", "手绘，脸是屏幕"], ["orb", "小澈", "科技助手 · 悬浮的全息核心，三圈轨道环"], ["term", "小终", "科技助手 · 会说话的终端窗口，绿字滚动"], ["capsule", "罐罐", "科技助手 · 白胶囊机器人，头顶小雷达"], ["moon", "小月", "安静陪伴 · 月牙小夜灯，坐在云上"], ["cube", "方方", "科技助手 · 会转的立方体，等距视角"], ["wisp", "数萤", "安静陪伴 · 一团会流动的数据光"], ...Object.entries(L2D_MODELS).map(([id, m]) => [id, m.name, m.desc])];
 const log = (...a) => console.log("[毛团]", ...a);
 
 // 从 Finder / 开始菜单启动时 PATH 很短，把常见的 node / uvx 位置补上（Agent SDK 要能找到 node）

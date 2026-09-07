@@ -30,12 +30,26 @@
 | **玩** | 猜拳、比大小（骰子）、接豆子——都在桌面上、在它身上演 |
 | **接你的生活** | 本机「音乐」App、飞书、Slack、Notion、GitHub、Spotify、Google 日历+Gmail、网易云……任何 MCP 都能接 |
 | **盯着你的 AI** | Codex（或 Claude Code）跑完一轮、或在等你确认时，它蹦起来叫你 |
-| **18 套皮肤** | 手绘：毛团、水母、史莱姆、小幽灵、小机器人；像素：像素团、像素水母、像素猫、像素幽灵、像素机器人、像素史莱姆；**二次元 Live2D 角色**：日和、春、莱丝、真绪、马克、名取、年糕犬（见下，每位有自己的名字、反应、台词和音色） |
+| **24 套皮肤** | 手绘：毛毛、小水、果冻、幽幽、滴滴；像素：方块、蓝蓝、橘子、小幽、哔哔、绿豆；**桌面助手**：小澈（光球）、小终（终端）、罐罐（胶囊）、方方（立方体）、数萤（数据光）、小月（月牙灯）；**二次元 Live2D**：日和、春、莱丝、真绪、马克、名取、年糕犬。每个都有自己的名字、动作、台词和音色 |
 
 <p align="center">
   <img src="docs/book.png" width="420" alt="绘本">
   <img src="docs/comic.jpg" width="300" alt="四格漫画">
 </p>
+
+## 桌面助手（新）
+
+六个用代码画出来的助手，都是活的：**小澈**是悬在半空的全息光球，三圈轨道环会转；**小终**是一台会说话的终端窗口，屏幕上绿字滚动、光标闪；**罐罐**是白胶囊机器人，两只手悬着晃、头顶雷达片在转；**方方**是等距视角的小立方体，绕竖轴慢慢摆；**数萤**是一团流动的数据光点，情绪靠光点的疏密表达；**小月**是坐在云上的月牙夜灯，安静陪你到深夜。
+
+<p align="center"><img src="docs/new-skins-sheet.png" width="860" alt="六个新的桌面助手"></p>
+
+## 每个角色的动作和场景
+
+**点它一下**，每个角色演的东西完全不同——不是所有人都在跳：毛毛被按瘪、往你手边蹭、滚一圈抖毛；小水缩伞喷泡、整只翻过来再自己正回来；幽幽淡到几乎透明；小终屏幕滚代码；方方转半圈露出侧面。每只有四个变体轮着来，节奏也不一样（一拍干脆 / 两拍带停顿 / 三拍连续 / 几乎不动只有表情），连点五下还有专门的"别戳了"。
+
+**八个使用场景**也各有各的反应和台词：换成这个样子、主人离开很久回来、发呆太久、正在想事情、Codex 跑完了来报喜、吃下你丢给它的文件、深夜还在用、你按住麦克风对它说话。
+
+<p align="center"><img src="docs/scenes-sheet.png" width="860" alt="八个使用场景"></p>
 
 ## 二次元角色（Live2D）
 
@@ -183,7 +197,7 @@ npm run dist:mac     # → dist/*.dmg
 npm run dist:win     # → dist/*-setup.exe, *-portable.exe
 ```
 
-CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.5.0`）就会在 macOS 和 Windows 上各打一份。
+CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.6.0`）就会在 macOS 和 Windows 上各打一份。
 
 开发时有几个环境变量方便调试：`MAOTUAN_SHOT=1`（把每个皮肤和面板截图到 `.shots/`）、`MAOTUAN_DEV=1`（详细日志）、`MAOTUAN_DEVCHAT="……"`（启动后自动聊一句）、`MAOTUAN_ICON=1`（把它渲染成应用图标）。外观规范在 `.claude/skills/fluff-art/SKILL.md`。
 
@@ -212,7 +226,7 @@ CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.gi
 
 ## 技术上
 
-Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（18 套皮肤：`renderer/skins/`）· 脑子：[`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
+Electron 44 · 主进程 ESM · 渲染层零依赖 Canvas 2D（24 套皮肤：`renderer/skins/`）· 脑子：[`@openai/codex-sdk`](https://www.npmjs.com/package/@openai/codex-sdk) · 工具：[`@modelcontextprotocol/sdk`](https://www.npmjs.com/package/@modelcontextprotocol/sdk) · 语音识别：[`@huggingface/transformers`](https://www.npmjs.com/package/@huggingface/transformers) Whisper · 语音合成 / 画图：MiniMax T2A v2 / image-01。
 
 ## 许可
 

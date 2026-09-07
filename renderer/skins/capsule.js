@@ -1,7 +1,60 @@
 import { makeVectorSkin } from "./vectorBase.js";
 import { SKIN_DEFAULTS } from "./names.js";
 import { withTaps } from "./taps.js";
-const DEF = withTaps(SKIN_DEFAULTS.capsule, "capsule");
+
+// names.js / tapTables.js 里还没有 capsule 这一条，所以名字、口气、点击反应先在这儿兜底；
+// 以后表里补上了，withTaps 的结果会盖掉同名字段（orb.js 也是这么写的）。
+const FALLBACK = {
+  name: "罐罐",
+  style: "勤快的小助理腔，短句，爱说「收到」「马上办」；办不到就老实承认，偶尔憨一下。",
+  voice: { id: "Chinese (Mandarin)_Straightforward_Boy", speed: 1.04, pitch: 1 },
+  tapLines: ["收到，马上办", "我在，随时听候", "雷达转着呢，放心", "这个我会，真的", "别戳啦，会转晕", "有事就叫我一声"],
+  manyLine: "一个一个来，忙不过来啦",
+  taps: [
+    { // 立正接令：先缩一下，弹起来把手举高，头顶亮一圈，回一句「收到」
+      actions: [
+        { squash: 0.75, fx: [["ring", { at: "chest", color: "#5BEAF5", width: 3, r0: 8, r1: 56, dur: 0.5 }]] },
+        { delay: 150, hop: 1, mood: "happy", fx: [["burst", "spark", 3, { at: "head", colors: ["#7FF0FF", "#FFFFFF"], speed: 60, lift: 30, gravity: 90, size: 0.8 }]] },
+        { delay: 220, fx: [["text", "收到", { at: "headR", color: "#39C6D8", size: 18, dur: 0.9, rise: 24 }]] }
+      ]
+    },
+    { // 雷达转起来找活干：抬头往右上扫一圈，扫完亮一下表示找到了
+      actions: [
+        { mood: "thinking", look: [0.6, -0.6], fx: [["hud", { at: "head", color: "#5BEAF5", r: 52, dur: 1 }]] },
+        { delay: 340, fx: [["burst", "dot", 3, { at: "headR", colors: ["#5BEAF5"], speed: 40, lift: 28, size: 0.7 }]] },
+        { delay: 380, mood: "happy", look: [0, 0], squash: 0.6, fx: [["glow", { at: "head", color: "#7FF0FF", r: 44, dur: 0.6 }]] }
+      ]
+    },
+    { // 点头点太用力：整只晃两下差点栽倒，冒两滴汗，赶紧扶稳
+      actions: [
+        { squash: 1.1, fx: [["shake", { amp: 3, dur: 0.35 }], ["burst", "dot", 4, { at: "feet", colors: ["#C9D1E0", "#8C94A6"], speed: 60, lift: 8, gravity: 150, size: 0.8 }]] },
+        { delay: 260, mood: "thinking", look: [-0.5, 0.2], fx: [["burst", "sweat", 2, { at: "headR", speed: 50, lift: 30, size: 0.85 }]] },
+        { delay: 360, mood: "happy", look: [0, 0], squash: 0.5, fx: [["ring", { at: "feet", color: "#8C94A6", width: 2, r0: 10, r1: 60, dur: 0.5 }]] }
+      ]
+    },
+    { // 转个身就去干活：脚下擦出火星，蹦回来邀功
+      actions: [
+        { spin: 1, fx: [["burst", "spark", 3, { at: "feet", colors: ["#7FF0FF", "#FFFFFF"], speed: 55, lift: 10, gravity: 140, size: 0.75 }]] },
+        { delay: 320, hop: 1, mood: "happy", fx: [["burst", "star", 2, { at: "above", colors: ["#FFE8A8", "#FFFFFF"], speed: 40, lift: 25, size: 0.8 }]] },
+        { delay: 280, fx: [["text", "办好了", { at: "headL", color: "#39C6D8", size: 17, dur: 0.9, rise: 22 }]] }
+      ]
+    }
+  ],
+  // 任务堆爆了：面罩闪一下、火花乱窜，冒白烟弹出「排队中」，垂下头缓一拍，重新亮灯站好
+  manyTap: {
+    actions: [
+      { fx: [["flash", { color: "#DFF6FF", alpha: 0.16, dur: 0.18 }], ["burst", "spark", 8, { at: "head", colors: ["#7FF0FF", "#FFFFFF"], speed: 120, lift: 40, spread: 14 }], ["shake", { amp: 4, dur: 0.45 }]] },
+      { delay: 220, mood: "thinking", fx: [["burst", "smoke", 4, { at: "above", colors: ["#C9D1E0", "#8C94A6"], speed: 35, lift: 25, gravity: -30, size: 0.95, stagger: 0.06 }], ["text", "排队中", { at: "headL", color: "#39C6D8", size: 18, dur: 1 }]] },
+      { delay: 420, squash: 0.9, look: [0, 0.5], fx: [["burst", "dot", 5, { at: "chest", colors: ["#8C94A6"], speed: 45, lift: 10, gravity: 160, size: 0.8 }]] },
+      { delay: 400, hop: 1, mood: "idle", look: [0, 0], fx: [["hud", { at: "chest", color: "#5BEAF5", r: 54, dur: 1 }], ["glow", { at: "head", color: "#7FF0FF", r: 42, dur: 0.8 }]] }
+    ]
+  }
+};
+const DEF = { ...FALLBACK, ...withTaps(SKIN_DEFAULTS.capsule, "capsule") };
+
+const TURN = Math.PI * 2;
+const CYAN = "#5BEAF5", LIT = "#7FF0FF", DIM = "#39C6D8";
+
 // 胶囊：立着的白胶囊小助理。腰上一圈深色的带子，上半身嵌一块黑面罩，
 // 面罩里两只发青光的眼睛；头顶一片会转的雷达；两只不连手臂的悬浮小圆手跟着身体晃。
 export const makeCapsule = makeVectorSkin({
@@ -11,17 +64,17 @@ export const makeCapsule = makeVectorSkin({
   // 心情做成平滑值，切换时不会跳；雷达角度、面罩涟漪也在这儿推进
   tick(S, dt, g, { spawn }) {
     const E = S.extra;
-    if (!E.ready) { E.ready = 1; E.sleepK = 0; E.happyK = 0; E.thinkK = 0; E.radar = 0; E.turn = 0; E.petPrev = 0; E.ripples = []; }
+    if (!E.ready) { E.ready = 1; E.sleepK = 0; E.happyK = 0; E.thinkK = 0; E.radar = 0; E.petPrev = 0; E.ripples = []; }
     const to = (a, b, k) => a + (b - a) * Math.min(1, dt * k);
     E.sleepK = to(E.sleepK, S.mood === "sleepy" ? 1 : 0, 4);
     E.happyK = to(E.happyK, (S.mood === "happy" || S.pet.amt > 0.15) ? 1 : 0, 6);
     E.thinkK = to(E.thinkK, S.mood === "thinking" ? 1 : 0, 4);
-    // 想事情转得快，困了几乎不转
+    // 想事情转得快，困了几乎不转（最慢也有 0.25 rad/s，不会倒着转）
     E.radar += dt * (1.1 + E.thinkK * 6.5 + E.happyK * 1.8 + (S.carried ? 3 : 0) - E.sleepK * 0.85);
-    const turn = Math.floor(E.radar / 6.2832);
-    if (turn !== E.turn) { E.turn = turn; if (S.mood === "thinking") spawn("dot", 1, g.cx + g.R * 0.3, g.cy - g.R * 1.2); }
-    // 被摸一下，就在面罩上开一圈涟漪
-    if (S.pet.amt > E.petPrev + 0.05 && E.ripples.length < 4) E.ripples.push({ x: S.pet.x, y: S.pet.y, t: 0 });
+    // 转满一圈就归零：角度不会一直累加下去，转过一圈时想事情就冒个点
+    if (E.radar >= TURN) { E.radar -= TURN; if (S.mood === "thinking") spawn("dot", 1, g.cx + g.R * 0.3, g.cy - g.R * 1.2); }
+    // 被摸一下，就在面罩上开一圈涟漪；位置存成"几个 R"，换窗口大小也不会跑偏
+    if (S.pet.amt > E.petPrev + 0.05 && E.ripples.length < 4) E.ripples.push({ u: (S.pet.x - g.cx) / g.R, v: (S.pet.y - g.cy) / g.R, t: 0 });
     E.petPrev = S.pet.amt;
     if (E.ripples.length) { for (const r of E.ripples) r.t += dt; E.ripples = E.ripples.filter(r => r.t < 0.85); }
   },
@@ -56,8 +109,8 @@ export const makeCapsule = makeVectorSkin({
     bg.addColorStop(0, rc > 0 ? "#79849A" : "#DDE4EF"); bg.addColorStop(1, rc > 0 ? "#DDE4EF" : "#79849A");
     ctx.fillStyle = bg; ctx.beginPath(); ctx.ellipse(0, 0, blade, R * 0.09, 0, 0, TAU); ctx.fill();
     ctx.strokeStyle = "rgba(48,58,80,0.5)"; ctx.lineWidth = Math.max(1, R * 0.02); ctx.stroke();
-    ctx.shadowColor = "#5BEAF5"; ctx.shadowBlur = 7 + thinkK * 9;             // 片尖上的信号灯
-    ctx.fillStyle = "#7FF0FF"; ctx.beginPath(); ctx.arc(rc * blade * 0.92, Math.sin(ra) * R * 0.03, R * 0.035, 0, TAU); ctx.fill();
+    ctx.shadowColor = CYAN; ctx.shadowBlur = 7 + thinkK * 9;                  // 片尖上的信号灯
+    ctx.fillStyle = LIT; ctx.beginPath(); ctx.arc(rc * blade * 0.92, Math.sin(ra) * R * 0.03, R * 0.035, 0, TAU); ctx.fill();
     ctx.restore();
 
     // ---- 胶囊身体：上下半圆 + 中间直筒 ----
@@ -89,7 +142,7 @@ export const makeCapsule = makeVectorSkin({
     const talk = S.talking || S.mouthLevel > 0.05;
     ctx.save();
     ctx.globalAlpha = Math.max(0.25, Math.min(1, (talk ? 0.5 + S.mouthLevel * 0.5 : 0.4 + 0.3 * Math.sin(S.t * 1.8) + happyK * 0.3) * (1 - sleepK * 0.6)));
-    ctx.shadowColor = "#5BEAF5"; ctx.shadowBlur = 8; ctx.fillStyle = "#7FF0FF";
+    ctx.shadowColor = CYAN; ctx.shadowBlur = 8; ctx.fillStyle = LIT;
     ctx.beginPath(); ctx.arc(cx, bt + bbh * 0.5 + sag * 0.8, R * 0.045, 0, TAU); ctx.fill(); ctx.restore();
 
     // ---- 面罩：上半身一块黑色弧形玻璃 ----
@@ -113,13 +166,14 @@ export const makeCapsule = makeVectorSkin({
     ctx.beginPath(); ctx.ellipse(cx - vw * 0.22, vy + vh * 0.18, vw * 0.34, vh * 0.2, -0.25, 0, TAU); ctx.fill();
     if (thinkK > 0.02) {                                                       // 想事情：一条扫描线上下走
       const sy = vy + ((S.t * 0.55) % 1) * vh;
-      ctx.globalAlpha = 0.2 * thinkK; ctx.strokeStyle = "#7FF0FF"; ctx.lineWidth = Math.max(1, R * 0.02);
+      ctx.globalAlpha = 0.2 * thinkK; ctx.strokeStyle = LIT; ctx.lineWidth = Math.max(1, R * 0.02);
       ctx.beginPath(); ctx.moveTo(vx, sy); ctx.lineTo(vx + vw, sy); ctx.stroke();
     }
     for (const rp of E.ripples || []) {                                        // 被摸：面罩上一圈圈涟漪
       const k = rp.t / 0.85, rr = R * 0.06 + k * R * 0.9;
-      ctx.globalAlpha = (1 - k) * 0.75; ctx.strokeStyle = "#7FF0FF"; ctx.lineWidth = Math.max(1, R * 0.045 * (1 - k));
-      const px = Math.max(vx + vw * 0.15, Math.min(vx + vw * 0.85, rp.x)), py = Math.max(vy, Math.min(vy + vh, rp.y));
+      ctx.globalAlpha = (1 - k) * 0.75; ctx.strokeStyle = LIT; ctx.lineWidth = Math.max(1, R * 0.045 * (1 - k));
+      const px = Math.max(vx + vw * 0.15, Math.min(vx + vw * 0.85, cx + rp.u * R));
+      const py = Math.max(vy, Math.min(vy + vh, cy + rp.v * R));
       ctx.beginPath(); ctx.ellipse(px, py, rr, rr * 0.8, 0, 0, TAU); ctx.stroke();
     }
     ctx.globalAlpha = 1; ctx.restore();
@@ -136,13 +190,13 @@ export const makeCapsule = makeVectorSkin({
         ctx.beginPath(); ctx.arc(ex, ey + R * 0.06, ew * 0.55, Math.PI * 1.14, Math.PI * 1.86); ctx.stroke();
       } else {
         const hh = Math.max(R * 0.024, eh * (1 - cl) * (1 - sleepK * 0.8));
-        ctx.fillStyle = "#5BEAF5"; ctx.beginPath(); ctx.roundRect(ex - ew / 2, ey - hh / 2, ew, hh, Math.min(hh / 2, R * 0.07)); ctx.fill();
+        ctx.fillStyle = CYAN; ctx.beginPath(); ctx.roundRect(ex - ew / 2, ey - hh / 2, ew, hh, Math.min(hh / 2, R * 0.07)); ctx.fill();
         if (hh > R * 0.06) { ctx.fillStyle = "rgba(228,255,255,0.85)"; ctx.beginPath(); ctx.roundRect(ex - ew * 0.34, ey - hh * 0.3, ew * 0.3, hh * 0.26, hh * 0.12); ctx.fill(); }
       }
     }
     // ---- 嘴：面罩下沿的一小条光。说话是波形，想事情是三个点，困了一条暗线 ----
     const my = vy + vh * 0.8, mx = cx + lx;
-    ctx.shadowBlur = 6; ctx.strokeStyle = "#5BEAF5"; ctx.fillStyle = "#5BEAF5";
+    ctx.shadowBlur = 6; ctx.strokeStyle = CYAN; ctx.fillStyle = CYAN;
     ctx.lineWidth = Math.max(1.4, R * 0.032); ctx.lineCap = "round";
     if (talk) {
       const n = 8; ctx.beginPath();
@@ -176,7 +230,8 @@ export const makeCapsule = makeVectorSkin({
     }
     ctx.restore();
 
-    if (S.mood === "reading") face.book(cx, cy + R * 0.35, R, "#F4F7FF", "#8A94A8");
-    face.parts({ heart: "#FF7BAC", z: "#8A94A8", dot: "#5BEAF5", note: "#5BEAF5" });
+    // 看书：摊在两只小手中间，不要盖到腰带
+    if (S.mood === "reading") face.book(cx, cy + R * 0.22, R, "#F4F7FF", "#8A94A8");
+    face.parts({ heart: "#FF7BAC", z: "#8A94A8", dot: CYAN, note: CYAN, bubble: "rgba(127,240,255,0.7)" });
   }
 });
