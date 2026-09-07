@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+body{margin:0;background:#f2f2f4;font:13px system-ui}
+.row{display:flex;flex-wrap:wrap}.cell{width:200px;height:215px;position:relative}
+.cell.dark{background:#22242b}canvas{width:200px;height:215px;display:block}
+.lab{position:absolute;left:6px;top:3px;font:11px system-ui;color:#9a9aa2;z-index:2}
+</style></head><body><div class="row" id="row"></div>
+<script type="module">
+import { makeCube } from "./renderer/skins/cube.js";
+// [标签, 深色底, 每帧强制的状态]
+const M=[
+ ["idle",0,s=>{s.S.mood="idle";s.S.t=0.9}],
+ ["idle 转另一边",0,s=>{s.S.mood="idle";s.S.t=6.4}],
+ ["happy",0,s=>{s.S.mood="happy";s.S.t=1.5}],
+ ["thinking",0,s=>{s.S.mood="thinking";s.S.t=1.5;s.S.extra.q=1;s.S.look.x=.6;s.S.look.y=-.7}],
+ ["sleepy 扁盒子",0,s=>{s.S.mood="sleepy";s.S.t=1.5;s.S.extra.flat=1}],
+ ["talking",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.talking=true;s.S.mouthLevel=.8}],
+ ["blink 眨到一半",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.blink=.5;s.S.blinkT=99}],
+ ["blink 闭眼",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.blink=1;s.S.blinkT=99}],
+ ["看左下",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.look.x=-1;s.S.look.y=.7;s.S.lookHold=99}],
+ ["看右上",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.look.x=1;s.S.look.y=-.7;s.S.lookHold=99}],
+ ["被摸",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.pet.amt=1;s.S.squash=1.2;s.S.jiggle=.3}],
+ ["yawn",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.beh={type:"yawn",t:.95,dur:1.9};s.S.behT=99}],
+ ["转到 90°（看不见脸）",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.extra.spinT=1.15*0.62}],
+ ["转到 180°（背面）",0,s=>{s.S.mood="idle";s.S.t=1.5;s.S.extra.spinT=1.15*0.5}],
+ ["idle",1,s=>{s.S.mood="idle";s.S.t=0.9}],
+ ["happy",1,s=>{s.S.mood="happy";s.S.t=1.5}],
+ ["sleepy",1,s=>{s.S.mood="sleepy";s.S.t=1.5;s.S.extra.flat=1}],
+ ["thinking",1,s=>{s.S.mood="thinking";s.S.t=1.5;s.S.extra.q=1}],
+];
+const row=document.getElementById("row"),made=[];
+for(const [lab,dark,fn] of M){
+ const d=document.createElement("div");d.className="cell"+(dark?" dark":"");
+ const l=document.createElement("div");l.className="lab";l.textContent=lab;
+ const c=document.createElement("canvas");d.appendChild(c);d.appendChild(l);row.appendChild(d);
+ const s=makeCube(c,{}); s.S.behT=1e9; s.S.hopT=1e9; s.S.blinkT=1e9;
+ made.push({lab,s,fn}); fn(s);
+}
+(function step(){for(const o of made){o.fn(o.s);}requestAnimationFrame(step);})();
+window.__m=made;
+</script></body></html>

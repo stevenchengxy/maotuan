@@ -47,6 +47,7 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 let store, brain, voice, pet, panel, tray, watcher, live2d, toolsServer, dataDir, stt, storyBook, bookWin, singer, arenaOn = false, singing = false, picWin = null, speakOff = false;
 let bookReading = false;
+let working = null;
 let quitting = false, chatting = false, readSentences = [], reading = { active: false }, lastAgent = null, lastAgentAt = 0, petHidden = false;
 const pending = new Map(); let playId = 0;
 const sendPet = (ch, d) => { if (pet && !pet.isDestroyed()) pet.webContents.send(ch, d); };
@@ -95,7 +96,7 @@ async function init() {
 
 function mcpFor() { return resolveMcp(store, { toolsServer }); }
 function setBrain(kind) {
-  store.patchSettings({ brain: kind === "codex" ? "codex" : "claude" });
+  store.patchSettings({ brain: "codex" });
   brain = createBrain(store.settings.brain, { store, dataDir, mcp: mcpFor, log });
   if (storyBook) storyBook.brain = brain;
   if (singer) singer.brain = brain;
@@ -103,15 +104,16 @@ function setBrain(kind) {
 }
 
 /* ---------------- 窗口 ---------------- */
-const PET_W0 = 300, PET_H0 = 340;
-let PET_W = PET_W0, PET_H = PET_H0;
+const PET_W0 = 300, PET_H0 = 340, BUBBLE_H0 = 104;   // 窗口比舞台高出 BUBBLE_H0：那一条是气泡的地盘，永远不会压到它
+let PET_W = PET_W0, PET_H = PET_H0 + BUBBLE_H0;
 function petScale() { return Math.max(0.5, Math.min(2, Number(store.settings.petScale) || 1)); }
 function petSize() { const k = petScale(); return { w: Math.round(PET_W0 * k), h: Math.round(PET_H0 * k) }; }
-function defaultPetPos() { const wa = screen.getPrimaryDisplay().workArea; const { w, h } = petSize(); return { x: wa.x + wa.width - w - 24, y: wa.y + wa.height - h - 8 }; }
+function winSize() { const k = petScale(), p = petSize(); return { w: p.w, h: p.h + Math.round(BUBBLE_H0 * k) }; }
+function defaultPetPos() { const wa = screen.getPrimaryDisplay().workArea; const { w, h } = winSize(); return { x: wa.x + wa.width - w - 24, y: wa.y + wa.height - h - 8 }; }
 // 改大小：脚底位置不动，往上长
 function applyPetSize() {
   if (!pet) return;
-  const { w, h } = petSize(); const [x, y] = pet.getPosition(); const [ow, oh] = pet.getSize();
+  const { w, h } = winSize(); const [x, y] = pet.getPosition(); const [ow, oh] = pet.getSize();
   const nx = Math.round(x + (ow - w) / 2), ny = Math.round(y + (oh - h));
   PET_W = w; PET_H = h;
   pet.setBounds({ x: nx, y: ny, width: w, height: h });
@@ -128,7 +130,7 @@ function tapConsole(win, tag) {
 }
 function createPet() {
   const pos = store.get("petPos") || defaultPetPos();
-  ({ w: PET_W, h: PET_H } = petSize());
+  ({ w: PET_W, h: PET_H } = winSize());
   pet = new BrowserWindow({
     width: PET_W, height: PET_H, x: pos.x, y: pos.y, transparent: true, frame: false, hasShadow: false, resizable: false, movable: false,
     alwaysOnTop: true, skipTaskbar: true, show: false, fullscreenable: false, minimizable: false,
@@ -184,11 +186,16 @@ function skinMenu() { return SKIN_LIST.map(([id, name]) => ({ label: name, type:
 let greetPending = "";
 const charOf = id => L2D_MODELS[id] || null;
 function greet(id) {
-  const c = charOf(id); if (!c || !c.greeting || store.settings.muted || store.settings.skin !== id) return;
+  if (store.settings.skin !== id) return;
+  scene("scene:greet");
+  const c = charOf(id); if (!c || !c.greeting || store.settings.muted) return;
   voice.stop(); sendPet("pet:say", { text: c.greeting }); voice.speak(c.greeting, { emotion: "happy" });
 }
-function onSkinChanged(id) { greetPending = ""; if (toolsServer) toolsServer.env.MAOTUAN_NAME = petName(); if (tray) tray.setToolTip(petName()); if (!charOf(id)) return; if (id.startsWith("l2d_")) greetPending = id; else greet(id); }
-function brainMenu() { return [["claude", "Claude"], ["codex", "Codex"]].map(([id, name]) => ({ label: name, type: "radio", checked: store.settings.brain === id, click: () => { setBrain(id); broadcastState(); } })); }
+// 场景反应：主进程只喊事件名，演什么、说什么在渲染层按角色查表
+function scene(ev, opts = {}) { sendPet("pet:scene", { ev, ...opts }); }
+function isNight() { const h = new Date().getHours(); return h >= 23 || h < 6; }
+
+function onSkinChanged(id) { greetPending = ""; if (toolsServer) toolsServer.env.MAOTUAN_NAME = petName(); if (tray) tray.setToolTip(petName()); if (id.startsWith("l2d_")) greetPending = id; else greet(id); }
 function commonMenu() {
   const s = store.settings;
   return [
@@ -199,7 +206,6 @@ function commonMenu() {
     { type: "separator" },
     { label: "换个样子", submenu: skinMenu() },
     { label: "大小", submenu: [[0.7, "小"], [1, "中"], [1.3, "大"], [1.7, "特大"]].map(([k, name]) => ({ label: name, type: "radio", checked: Math.abs(petScale() - k) < 0.05, click: () => { store.patchSettings({ petScale: k }); applyPetSize(); broadcastState(); } })) },
-    { label: "脑子", submenu: brainMenu() },
     { label: s.muted ? "让它出声" : "安静一会儿", click: () => { store.patchSettings({ muted: !s.muted }); if (!s.muted) voice.stop(); broadcastState(); } },
     { label: "回到右下角", click: () => { const p = defaultPetPos(); pet.setPosition(p.x, p.y); store.set("petPos", p); } },
     { label: petHidden ? "把它叫出来" : "先藏起来", click: () => setPetHidden(!petHidden) },
@@ -284,7 +290,7 @@ const cleanBubble = t => String(t || "").replace(/[【\[](开心|高兴|难过|�
 function friendlyBrainError(ev) {
   const t = String(ev.text || "");
   if (brain.name === "codex") { if (/login|auth|401|unauthorized|not logged/i.test(t)) return "脑子没接上。在终端里跑一下 codex login，我就能说话了。"; return "唔，Codex 那边卡了一下。再说一遍？"; }
-  if (/not logged in|login|authenticate|401|unauthorized|expired/i.test(t)) return "脑子没接上。在终端里打 claude，再输入 /login 登录一次，我就能说话了。";
+  if (/not logged in|login|authenticate|401|unauthorized|expired/i.test(t)) return "脑子没接上。在终端里跑一次 codex login 就好了。";
   if (/ENOENT|spawn|node/i.test(t)) return "脑子没接上，好像找不到 node。看看设置里的说明。";
   return "唔，脑子卡了一下。再说一遍？";
 }
@@ -292,15 +298,16 @@ async function runChat(text) {
   if (chatting) await brain.interrupt();
   chatting = true; stopReading(true); voice.stop();
   speakOff = false;
-  const sb = new SentenceBuffer(s => { if (!speakOff) voice.enqueue(s); });
+  let streamed = false;
+  const sb = new SentenceBuffer(s => { if (!speakOff) voice.enqueue(s); const t = cleanBubble(s); if (t) { streamed = true; sendPet("pet:sentence", { text: t }); } });
   let acc = "";
-  sendPanel("chat:start", { brain: brain.name }); sendPet("pet:mood", { mood: "thinking" });
+  sendPanel("chat:start", { brain: brain.name }); sendPet("pet:mood", { mood: "thinking" }); scene("scene:think");
   try {
     for await (const ev of brain.chat(text)) {
       if (process.env.MAOTUAN_DEV && ev.type !== "delta") log("chat event:", ev.type, ev.name || "", (ev.text || "").slice(0, 200));
-      if (ev.type === "delta") { acc += ev.text; sb.push(ev.text); sendPanel("chat:delta", { text: ev.text }); sendPet("pet:stream", { text: cleanBubble(acc) }); sendPet("pet:mood", { mood: "idle" }); }
+      if (ev.type === "delta") { acc += ev.text; sb.push(ev.text); sendPanel("chat:delta", { text: ev.text }); sendPet("pet:mood", { mood: "idle" }); }
       else if (ev.type === "tool") { sendPanel("chat:tool", { name: ev.name, input: ev.input }); sendPet("pet:mood", { mood: "thinking" }); }
-      else if (ev.type === "done") { sb.flush(); sendPanel("chat:done", { text: ev.text }); sendPet("pet:say", { text: cleanBubble(ev.text || acc) }); sendPet("pet:mood", { mood: "idle" }); }
+      else if (ev.type === "done") { sb.flush(); sendPanel("chat:done", { text: ev.text }); if (!streamed) sendPet("pet:say", { text: cleanBubble(ev.text || acc) }); else sendPet("pet:sentenceEnd", {}); sendPet("pet:mood", { mood: "idle" }); }
       else if (ev.type === "error") { sb.flush(); sendPanel("chat:error", { text: ev.text, code: ev.code }); sendPet("pet:say", { text: friendlyBrainError(ev) }); sendPet("pet:mood", { mood: "idle" }); }
     }
   } finally { chatting = false; broadcastState(); }
@@ -321,7 +328,7 @@ async function feed(text, name) {
   stopReading(true);
   const doc = { key: String(Date.now()), name, chars: text.length, text, pos: 0, title: (name || "").replace(/\.[^.]+$/, "") || "一段文字", kind: "", oneLine: "", points: [], intro: "" };
   store.set("doc", doc); store.set("fed", (store.get("fed") || 0) + 1);
-  sendPet("pet:mood", { mood: "thinking" }); sendPet("pet:say", { text: "嚼嚼嚼……" });
+  sendPet("pet:mood", { mood: "thinking" }); scene("scene:feed"); sendPet("pet:say", { text: "嚼嚼嚼……" });
   try {
     const r = await brain.digest(text, name);
     Object.assign(doc, { title: r.title || doc.title, kind: r.kind || "", oneLine: r.oneLine || "", points: Array.isArray(r.points) ? r.points.slice(0, 3) : [], intro: r.intro || "" });
@@ -342,12 +349,52 @@ function startReading(from) {
 function stopReading(silent) { if (!reading.active) return; reading.active = false; voice.stop(); store.save(); sendPet("pet:mood", { mood: "idle" }); if (!silent) sendPanel("read:done", { stopped: true }); }
 
 /* ---------------- 你回来啦 / AI 跑完啦 ---------------- */
+let lastBored = 0;
+// 让 Codex 去干活：在主人选的文件夹里跑一轮，边跑边报进度，跑完了跳出来叫他
+function startWork(task) {
+  task = String(task || "").trim();
+  const cwd = (store.settings.workDir || "").trim();
+  if (!task) return { error: "先说清楚让它干什么。" };
+  if (!cwd || !fs.existsSync(cwd)) return { error: "先选一个文件夹。" };
+  if (working) return { error: "它还在忙上一件事。" };
+  working = new AbortController();
+  const started = Date.now();
+  sendPanel("work:state", { running: true, dir: cwd, task });
+  sendPet("pet:mood", { mood: "thinking" }); scene("scene:think");
+  const done = (async () => {
+    let last = "", steps = 0, failed = "";
+    try {
+      for await (const ev of brain.work(task, { cwd, sandbox: store.settings.workSandbox || "workspace-write", signal: working.signal })) {
+        if (ev.type === "step") { steps = ev.n; sendPanel("work:step", ev); if (process.env.MAOTUAN_DEV) log("work step", ev.n, ev.label); }
+        else if (ev.type === "text") { last = ev.text; sendPanel("work:text", { text: ev.text }); }
+        else if (ev.type === "error") { failed = ev.text; sendPanel("work:error", { text: ev.text }); }
+        else if (ev.type === "done") { last = ev.text || last; steps = ev.steps || steps; }
+      }
+    } catch (e) { failed = e.message; sendPanel("work:error", { text: e.message }); }
+    working = null;
+    const secs = Math.round((Date.now() - started) / 1000);
+    const res = { running: false, done: true, steps, secs, text: last, error: failed };
+    sendPanel("work:state", res);
+    sendPet("pet:mood", { mood: "idle" });
+    if (failed) { sendPet("pet:say", { text: "没弄成：" + String(failed).slice(0, 40) }); if (!store.settings.muted) voice.speak("这件事我没弄成。"); return res; }
+    scene("scene:done");
+    const line = `干完啦，动了 ${steps} 步，用了 ${secs} 秒。`;
+    sendPet("pet:say", { text: line });
+    if (!store.settings.muted) { voice.stop(); voice.speak(line, { emotion: "happy" }); }
+    lastAgent = { source: "codex-work", text: line, at: Date.now() };
+    broadcastState();
+    return res;
+  })();
+  return { ok: true, done };
+}
+
 function watchIdle() {
   let wasAway = false, awaySince = 0;
   setInterval(() => {
     const idle = powerMonitor.getSystemIdleTime();
     if (!wasAway && idle > 240) { wasAway = true; awaySince = Date.now() - idle * 1000; sendPet("pet:mood", { mood: "sleepy" }); }
-    else if (wasAway && idle < 5) { wasAway = false; const mins = Math.round((Date.now() - awaySince) / 60000); sendPet("pet:mood", { mood: "happy" }); sendPet("pet:back", { mins }); store.set("lastSeen", Date.now()); }
+    else if (!wasAway && idle > 45 && Date.now() - lastBored > 120000 && !chatting && voice.idle) { lastBored = Date.now(); scene(isNight() ? "scene:night" : "scene:bored"); }
+    else if (wasAway && idle < 5) { wasAway = false; const mins = Math.round((Date.now() - awaySince) / 60000); sendPet("pet:mood", { mood: "happy" }); scene("scene:back"); sendPet("pet:back", { mins }); store.set("lastSeen", Date.now()); }
   }, 5000);
 }
 function onWatcherEvent(ev) {
@@ -360,6 +407,7 @@ function onWatcherEvent(ev) {
   else text = (data && (data.text || data.message)) || `${source} 那边有动静了。`;
   const now = Date.now(); if (now - lastAgentAt < 2500) return; lastAgentAt = now;
   lastAgent = { source, text, at: now };
+  scene("scene:done");
   if (petHidden) setPetHidden(false);
   sendPet("pet:agent", { source, text }); sendPanel("agent:event", lastAgent);
   if (!store.settings.muted) { voice.stop(); voice.speak(text); }
@@ -379,7 +427,7 @@ function enterArena() {
 }
 function leaveArena() {
   if (!pet || !arenaOn) return; arenaOn = false;
-  const { w, h } = petSize(); const [x, y] = pet.getPosition(); const [ow, oh] = pet.getSize();
+  const { w, h } = winSize(); const [x, y] = pet.getPosition(); const [ow, oh] = pet.getSize();
   pet.setBounds({ x: Math.round(x + (ow - w) / 2), y: Math.round(y + oh - h), width: w, height: h });
   pet.setIgnoreMouseEvents(true, { forward: true });
   sendPet("pet:arena", { on: false }); sendPet("state", publicState());
@@ -463,6 +511,14 @@ async function devShots() {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
     for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    if (process.env.MAOTUAN_DEVWORK) {   // "文件夹::任务"
+      const [dir, task] = process.env.MAOTUAN_DEVWORK.split("::");
+      store.patchSettings({ workDir: dir });
+      log("DEVWORK 开始", dir, "|", task);
+      const r = startWork(task);
+      if (r.error) log("DEVWORK 起不来:", r.error);
+      else log("DEVWORK 结果", JSON.stringify(await r.done).slice(0, 500));
+    }
     if (process.env.MAOTUAN_DEVBUBBLE) {   // 三个尺寸各来一句长话，看气泡会不会盖住它
       const wait = ms => new Promise(r => setTimeout(r, ms));
       const text = process.env.MAOTUAN_DEVBUBBLE === "1" ? "你回来啦。你不在的时候，我数了一遍身上的毛，数到 97 就忘了，只好从头再数一次。" : process.env.MAOTUAN_DEVBUBBLE;
@@ -620,6 +676,16 @@ function wireIpc() {
   });
   ipcMain.on("pet:click", () => togglePanel());
   ipcMain.on("pet:menu", () => { if (pet) Menu.buildFromTemplate(commonMenu()).popup({ window: pet }); });
+  // ---- 让 Codex 干活：在主人指定的文件夹里跑一轮，边跑边报，跑完叫他 ----
+  ipcMain.handle("work:pick", async () => {
+    const r = await dialog.showOpenDialog({ title: "让它在哪个文件夹里干活", properties: ["openDirectory", "createDirectory"] });
+    if (r.canceled || !r.filePaths[0]) return { dir: "" };
+    store.patchSettings({ workDir: r.filePaths[0] }); broadcastState();
+    return { dir: r.filePaths[0] };
+  });
+  ipcMain.handle("work:start", (_e, { task }) => { const r = startWork(task); return r.error ? r : { ok: true }; });
+  ipcMain.handle("work:stop", () => { if (working) { working.abort(); return { ok: true }; } return { ok: false }; });
+  ipcMain.handle("pet:scene", (_e, { ev }) => { if (typeof ev === "string" && ev.startsWith("scene:")) scene(ev); return true; });
   ipcMain.on("pet:petted", () => { store.set("pets", (store.get("pets") || 0) + 1); });
   ipcMain.on("pet:ready", () => { sendPet("state", publicState()); if (process.env.MAOTUAN_SHOT && !devShotsRan) { devShotsRan = true; setTimeout(devShots, 2500); } if (process.env.MAOTUAN_ICON) setTimeout(devIcon, 800); if (process.env.MAOTUAN_SNAP) setTimeout(devSnap, 300); });
   ipcMain.on("voice:ended", (_e, { id }) => { const r = pending.get(id); if (r) { pending.delete(id); r(); } });

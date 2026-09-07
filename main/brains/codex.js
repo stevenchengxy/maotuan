@@ -62,6 +62,44 @@ export class CodexBrain {
   }
   async interrupt() { try { if (this.ac) this.ac.abort(); } catch {} }
   reset() { this.threadId = null; this.store.set("codexThread", ""); }
+
+  // 让 Codex 真的去干活：在主人指定的文件夹里跑一个独立的会话，能读能写
+  async *work(task, { cwd, sandbox = "workspace-write", signal } = {}) {
+    const s = this.store.settings;
+    const codex = this.client(true);
+    const thread = codex.startThread({
+      workingDirectory: cwd, skipGitRepoCheck: true,
+      sandboxMode: sandbox, approvalPolicy: "never",
+      ...(s.codexModel ? { model: s.codexModel } : {}),
+      modelReasoningEffort: s.workEffort || "medium", webSearchMode: "cached"
+    });
+    let final = "", steps = 0; const seen = new Map();
+    try {
+      const { events } = await thread.runStreamed(task, { signal });
+      for await (const ev of events) {
+        if (ev.type === "thread.started") yield { type: "start", id: ev.thread_id };
+        else if (ev.item && ev.item.type === "agent_message" && (ev.type === "item.updated" || ev.type === "item.completed")) {
+          const t = ev.item.text || "", prev = seen.get(ev.item.id) || "";
+          if (t !== prev) { seen.set(ev.item.id, t); final = t; yield { type: "text", text: t }; }
+        }
+        else if (ev.type === "item.started" && ev.item) {
+          steps++;
+          const it = ev.item;
+          const label = it.type === "command_execution" ? ("$ " + String(it.command || "").slice(0, 120))
+            : it.type === "file_change" ? ("改文件 " + (it.path || ""))
+            : it.type === "mcp_tool_call" ? ((it.server || "") + "." + (it.tool || ""))
+            : it.type === "web_search" ? "查资料" : it.type;
+          yield { type: "step", n: steps, label };
+        }
+        else if (ev.type === "item.completed" && ev.item && ev.item.type === "error") yield { type: "error", text: ev.item.message || "error" };
+        else if (ev.type === "turn.completed") yield { type: "done", text: final, steps };
+        else if (ev.type === "turn.failed") yield { type: "error", text: (ev.error && ev.error.message) || "没跑完" };
+      }
+    } catch (err) {
+      if (signal && signal.aborted) yield { type: "done", text: final || "（中途停下了）", steps };
+      else yield { type: "error", text: String((err && err.message) || err) };
+    }
+  }
   async oneShot(prompt) {
     const codex = this.client(false);
     const thread = codex.startThread({ ...this.threadOptions(), model: this.store.settings.codexModel || undefined });

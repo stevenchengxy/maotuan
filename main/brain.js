@@ -1,3 +1,3 @@
-import { ClaudeBrain } from "./brains/claude.js";
 import { CodexBrain } from "./brains/codex.js";
-export function createBrain(kind, deps) { return kind === "codex" ? new CodexBrain(deps) : new ClaudeBrain(deps); }
+// 现在只接 Codex（Claude 的 Agent SDK 已经不对外了）
+export function createBrain(_kind, deps) { return new CodexBrain(deps); }

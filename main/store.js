@@ -17,7 +17,10 @@ export class Store {
       petPos: null,
       doc: null,
       settings: {
-        brain: "claude",           // claude | codex
+        brain: "codex",            // 只接 Codex
+        workDir: "",               // 让 Codex 干活的文件夹
+        workSandbox: "workspace-write",   // read-only | workspace-write
+        workEffort: "medium",
         model: "",
         codexModel: "",
         codexEffort: "low",

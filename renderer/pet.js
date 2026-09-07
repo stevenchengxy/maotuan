@@ -9,7 +9,8 @@ const hud = document.getElementById("hud");
 let base = { w: window.innerWidth, h: window.innerHeight };
 function layout() {
   stage.style.width = base.w + "px"; stage.style.height = base.h + "px";
-  bubble.style.top = Math.max(14, window.innerHeight - base.h + 14) + "px";
+  bubble.style.top = "auto";
+  bubble.style.bottom = (base.h + 2) + "px";   // 严格待在舞台上方，绝不压到它
   btext.style.maxHeight = bubbleRoom() + "px";
   fluff && fluff.resize && fluff.resize();
 }
@@ -38,12 +39,8 @@ function useSkin(id) {
 let hideT = null, typeT = null;
 // 气泡最多占它头顶那一小块：超出的字截掉，露出「点开看全文」，点开在聊天窗里看
 const BUBBLE_MAX = 48;
-function bubbleRoom() {
-  // 气泡底边不能压到它的头：留出舞台高度的一小截
-  const top = parseFloat(bubble.style.top) || 14;
-  const headY = window.innerHeight - base.h * 0.78;
-  return Math.max(46, Math.min(Math.max(92, base.h * 0.3), Math.round(headY - top - 8)));
-}
+// 窗口顶上那条是气泡的地盘（主进程按 BUBBLE_H0 预留），气泡贴着舞台顶边往上长，永远压不到它
+function bubbleRoom() { return Math.max(30, Math.round(window.innerHeight - base.h - 26)); }
 function setBubbleText(t) {
   btext.textContent = t;
   markClipped();
@@ -75,6 +72,30 @@ bubble.addEventListener("click", () => { if (fluff.S.talking || humming) mt.send
 function scheduleHide(text) { clearTimeout(hideT); hideT = setTimeout(hideBubble, 3500 + Math.min(9000, text.length * 90)); }
 function hideBubble() { bubble.classList.remove("show"); bubble.classList.add("hide"); }
 
+/* ---------- 长消息：一句一句往外冒，不堆成一大坨 ---------- */
+let sayQ = [], sayTimer = null, queueBusy = false, queueEnded = false;
+function queueSay(t) {
+  t = String(t || "").trim(); if (!t) return;
+  if (!queueBusy) queueEnded = false;
+  sayQ.push(t);
+  if (!queueBusy) pumpSay();
+}
+function pumpSay() {
+  clearTimeout(sayTimer);
+  const s = sayQ.shift();
+  if (!s) { queueBusy = false; return; }
+  queueBusy = true;
+  showBubble(s, { type: true, hold: true });
+  // 一句停多久：够读完，但别拖太久
+  const dur = Math.max(1500, Math.min(6500, 700 + s.length * 150));
+  sayTimer = setTimeout(() => {
+    if (sayQ.length) return pumpSay();
+    queueBusy = false;
+    if (queueEnded || true) scheduleHide(s);
+  }, dur);
+}
+function clearSayQueue() { sayQ.length = 0; queueBusy = false; queueEnded = false; clearTimeout(sayTimer); }
+
 /* ---------- 声音回放：嘴跟着声音动 ---------- */
 const actx = new (window.AudioContext || window.webkitAudioContext)();
 let current = null;
@@ -102,7 +123,9 @@ async function playAudio({ id, data, format }) {
 mt.on("state", s => { state = s; if (s.petBase && (s.petBase.w !== base.w || s.petBase.h !== base.h)) { base = { w: s.petBase.w, h: s.petBase.h }; layout(); } if (s.settings && s.settings.skin) useSkin(s.settings.skin); });
 mt.on("pet:arena", ({ on }) => { arena = !!on; hud.style.display = on ? "block" : "none"; if (!on) { game = null; fxItems = []; hud.textContent = ""; } setTimeout(layout, 50); });
 window.addEventListener("resize", () => setTimeout(layout, 20));
-mt.on("pet:say", ({ text }) => showBubble(text, { type: true }));
+mt.on("pet:say", ({ text }) => { sayQ.length = 0; queueBusy = false; clearTimeout(sayTimer); showBubble(text, { type: true }); });
+mt.on("pet:sentence", ({ text }) => queueSay(text));
+mt.on("pet:sentenceEnd", () => { queueEnded = true; });
 mt.on("pet:stream", ({ text, hold }) => showBubble(text, { type: false, hold: !!hold, tail: true }));
 mt.on("pet:mood", ({ mood }) => fluff.setMood(mood));
 mt.on("pet:talking", ({ talking }) => { fluff.S.talking = talking; if (!talking) { fluff.setMouth(0); if (bubble.classList.contains("show")) scheduleHide(bubble.textContent); } });
@@ -110,6 +133,21 @@ mt.on("pet:pet", () => { fluff.poke(); happyFor(1500); showBubble(pick(PET_LINES
 mt.on("pet:back", ({ mins }) => { fluff.setMood("happy"); fluff.spawn("heart", 2); showBubble(backLine(mins)); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 3000); });
 mt.on("pet:land", ({ k }) => { fluff.land(k || 1); });
 mt.on("pet:react", ({ ev, ctx }) => react(ev, ctx || {}));
+// 场景反应：换样子、主人回来、发呆、在想、跑完了、吃文件、深夜、在听你说话
+const SCENE_FALLBACK = {
+  "scene:greet": "你好呀，我在这儿。", "scene:back": "你回来啦。", "scene:bored": "……有点无聊。",
+  "scene:think": "让我想想。", "scene:done": "跑完啦，快来看！", "scene:feed": "嚼嚼嚼……",
+  "scene:night": "很晚了哦，早点睡。", "scene:listen": "嗯，我在听。"
+};
+mt.on("pet:scene", ({ ev }) => {
+  if (!ev) return;
+  const c = fluff.character || null;
+  const played = react(ev);
+  const lines = c && c.sceneLines && c.sceneLines[ev];
+  const line = Array.isArray(lines) ? pick(lines) : (typeof lines === "string" ? lines : null);
+  if (ev === "scene:think" || ev === "scene:listen") { if (!played) fluff.setMood("thinking"); return; }   // 这两个不打扰，只做动作
+  if (line || SCENE_FALLBACK[ev]) showBubble(line || SCENE_FALLBACK[ev], { type: true });
+});
 mt.on("pet:whoami", () => mt.send("pet:whoami", { skin: skinId }));   // 开发用 / 主进程触发角色反应
 mt.on("pet:agent", ({ text }) => { fluff.S.hop = 1.0001; fluff.setMood("happy"); fluff.spawn("heart", 4); showBubble(text, { type: true }); setTimeout(() => { if (fluff.S.mood === "happy") fluff.setMood("idle"); }, 4000); });
 mt.on("voice:play", playAudio);
@@ -141,7 +179,7 @@ function startHum(tempo = 96) {
 }
 function stopHum() { humming = false; clearTimeout(humTimer); for (const n of humNodes) { try { n.stop && n.stop(); } catch {} try { n.disconnect(); } catch {} } humNodes = []; }
 mt.on("pet:hum", ({ on, tempo }) => { if (on) { fluff.setMood("happy"); startHum(tempo); } else { stopHum(); } });
-mt.on("voice:stop", () => { if (current) { try { current.src.onended = null; current.src.stop(); } catch {} current = null; } fluff.setMouth(0); });
+mt.on("voice:stop", () => { clearSayQueue(); if (current) { try { current.src.onended = null; current.src.stop(); } catch {} current = null; } fluff.setMouth(0); });
 mt.on("voice:pause", () => actx.suspend());
 mt.on("voice:resume", () => actx.resume());
 
