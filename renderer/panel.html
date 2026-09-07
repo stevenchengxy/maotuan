@@ -176,15 +176,15 @@
       </div>
       <div class="card">
         <h3>比大小（骰子）</h3>
-        <div class="row"><button class="btn primary" id="diceGo">摇！</button><span class="hint" id="diceLine">它把骰子甩出去，点数大的赢。</span></div>
+        <div class="row"><button class="btn primary" id="diceGo">摇！</button><span class="hint" id="diceLine">点数大的赢。</span></div>
       </div>
       <div class="card">
         <h3>接豆子</h3>
-        <div class="row"><button class="btn primary" id="catchGo">在桌面上开一局</button><button class="btn" id="catchStop" hidden>不玩了</button><span class="hint" id="catchInfo">豆子从它头顶掉下来，鼠标左右挪它手里的小篮子，30 秒，漏三个结束。</span></div>
+        <div class="row"><button class="btn primary" id="catchGo">在桌面上开一局</button><button class="btn" id="catchStop" hidden>不玩了</button><span class="hint" id="catchInfo">鼠标挪篮子接豆子，30 秒。</span></div>
       </div>
       <div class="card">
         <h3>让 Codex 去干活</h3>
-        <div class="hint">挑一个文件夹，说清楚要它做什么，它会在那个文件夹里真的动手（读文件、跑命令、改代码），干完了跳出来叫你。</div>
+        <div class="hint">选一个文件夹，说要做什么。</div>
         <div class="row"><button class="btn" id="workPick">选文件夹</button><span class="hint grow" id="workDir">还没选</span></div>
         <div class="row"><input class="grow plain" id="workTask" placeholder="要它做什么？比如：把 README 里的安装步骤更新成最新的命令"><button class="btn primary" id="workGo">开工</button><button class="btn" id="workStop" hidden>停下</button></div>
         <div class="hint" id="workState"></div>
@@ -193,11 +193,11 @@
       <div class="card">
         <h3>让它画一张</h3>
         <div class="row"><input class="grow plain" id="drawPrompt" placeholder="画什么？比如：白雪公主在森林小屋前，七个小矮人举着灯"><select class="plain" id="drawStyle"><option>插画</option><option>四格漫画</option><option>水彩</option><option>像素</option><option>写实</option></select><button class="btn primary" id="drawGo">画</button></div>
-        <div class="hint" id="drawStatus">聊天里直接说"画一张……"也行，它会用同一个画笔。画好的都在画框窗口里，<a class="lnk" id="drawOpen">打开画框</a>。</div>
+        <div class="hint" id="drawStatus">画好的都在画框里，<a class="lnk" id="drawOpen">打开画框</a>。</div>
       </div>
       <div class="card">
         <h3>让它唱首歌</h3>
-        <div class="hint">它自己写词（脑子）。MiniMax 的音乐接口如果你的账号能用就真唱；用不了（新账号已停开）就用哼唱模式：桌面上起一段小旋律，它用自己的声音一句一句唱。只会唱自己写的歌，别人的歌它不会。</div>
+        <div class="hint">它自己写词。能用 MiniMax 音乐接口就真唱，用不了就哼给你听，它用自己的声音一句一句唱。只会唱自己写的歌，别人的歌它不会。</div>
         <div class="row"><input class="grow plain" id="singTheme" placeholder="唱什么？比如：今天的好心情、下雨天、我的猫"><button class="btn primary" id="singGo">唱</button></div>
         <div class="hint" id="singStatus"></div>
         <pre id="singLyrics" class="hint" style="white-space:pre-wrap;margin:0;font-family:'Songti SC','STSong',serif;font-size:14px"></pre>
@@ -441,7 +441,7 @@ function renderWizard() {
       el("div", { class: "hint", html: "不用 API key，用你电脑上 <code>codex login</code> 的登录。" + (h.codexInstalled ? '<br><span class="ok">检测到已登录，可以直接用。</span>' : '<br><span class="bad">还没登录</span>：在终端里跑 <code>codex login</code>，回来点下一步。') }),
       nav(true, "下一步", () => { wizStep = 2; renderWizard(); }));
   } else if (wizStep === 2) {
-    const keyIn = secretIn("minimaxKey", "粘贴 MiniMax 的 API Key");
+    const keyIn = secretIn("minimaxKey", "API Key");
     const st = el("div", { class: "hint" }, state.secrets.minimaxKey ? "已经有 key 了。" : "没 key 也能用，先用电脑自带的声音，之后随时在设置里加。");
     box.append(el("h2", {}, "给它一个好听的声音"),
       el("div", { class: "hint", html: "推荐 MiniMax：在 <a class=\"lnk\" data-url=\"https://platform.minimaxi.com\">platform.minimaxi.com</a> 注册 → 账户管理 → API Key。贴进来会自动检测国内 / 国际站。" }),
@@ -478,27 +478,26 @@ function renderSettings() {
   const skins = el("div", { class: "skins" });
   for (const k of state.skins) { const d = el("div", { class: "skin" + (s.skin === k.id ? " on" : ""), onclick: () => set({ skin: k.id }) }, k.name); d.append(el("small", {}, k.desc || "")); skins.append(d); }
   const sizeIn = el("input", { type: "range", min: 0.6, max: 1.8, step: 0.1, value: s.petScale || 1, onchange: e => set({ petScale: Number(e.target.value) }) });
-  root.append(card("它的名字和样子", el("div", { class: "row" }, nameIn, el("button", { class: "btn small", onclick: () => api.invoke("name:set", { name: nameIn.value }) }, "改好了")), el("div", { class: "hint" }, "每个样子有自己的名字和性子：毛团叫毛毛、水母叫小水、日和就叫日和。这里改的是当前这个样子的名字，清空就恢复默认。"), skins,
-    el("div", { class: "hint" }, "带 Live2D 字样的二次元角色，第一次选中会从 Live2D 官方下载模型（几 MB，稍等一会儿）。角色模型 © Live2D Inc.，官方免费示例。"),
-    field("它的大小（右键它也能调）", sizeIn),
-    el("div", { class: "hint" }, "鼠标在它身上蹭是摸；按住拖是抱走，甩出去它会飞；点一下开聊天；双击转圈；右键有菜单。")));
+  root.append(card("它的名字和样子", el("div", { class: "row" }, nameIn, el("button", { class: "btn small", onclick: () => api.invoke("name:set", { name: nameIn.value }) }, "改好了")), skins,
+    field("大小", sizeIn),
+    ));
 
   // 脑子：只接 Codex
   const brainCard = card("脑子（Codex）");
   {
 
-    const keyIn = secretIn("openaiKey", "一般不用填：只有想用 OpenAI 的 API Key 计费时才填");
+    const keyIn = secretIn("openaiKey", "可选");
     brainCard.append(
       el("div", { class: "hint", html: (state.hooks.codexInstalled ? '<span class="ok">检测到你已经 codex login 过了。</span>' : '<span class="bad">没找到 codex 的登录。</span>在终端里跑 <code>codex login</code>。') + " 走的是本机 Codex，只读沙盒，不会动你的文件。" }),
-      field("模型（可选）", el("input", { value: s.codexModel || "", placeholder: "留空 = 你 codex 的默认", onchange: e => set({ codexModel: e.target.value.trim() }) })),
-      field("想多深", el("select", { onchange: e => set({ codexEffort: e.target.value }) }, ...["minimal", "low", "medium", "high"].map(v => el("option", { value: v, selected: (s.codexEffort || "low") === v }, v === "low" ? "low（聊天够用，快）" : v)))),
-      field("OpenAI API Key（可选；注意：MiniMax 的 key 不填这里，填「声音」）", keyIn),
+      field("模型", el("input", { value: s.codexModel || "", placeholder: "默认", onchange: e => set({ codexModel: e.target.value.trim() }) })),
+      field("聊天想多深", el("select", { onchange: e => set({ codexEffort: e.target.value }) }, ...["minimal", "low", "medium", "high"].map(v => el("option", { value: v, selected: (s.codexEffort || "low") === v }, v === "low" ? "low" : v)))),
+      field("OpenAI API Key", keyIn),
       el("div", { class: "row end" }, clearSecretBtn("openaiKey"), saveSecretBtn("openaiKey", keyIn, "保存 key", v => /^sk-api-/.test(v) ? "这是 MiniMax 的 key（sk-api- 开头），应该填在「声音」里，不是这里。" : (/^sk-/.test(v) || /^ey/.test(v)) ? "" : "OpenAI 的 key 一般是 sk- 开头，这个看起来不像。")),
       field("干活的文件夹", el("div", { class: "row" }, el("span", { class: "hint grow" }, s.workDir || "还没选"), el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("work:pick"); if (r && r.dir) refresh(); } }, "选"))),
-      field("干活时的权限", el("select", { onchange: e => set({ workSandbox: e.target.value }) },
-        el("option", { value: "workspace-write", selected: (s.workSandbox || "workspace-write") === "workspace-write" }, "能改这个文件夹里的文件（推荐）"),
-        el("option", { value: "read-only", selected: s.workSandbox === "read-only" }, "只让它看，不许改"))),
-      field("干活时想多深", el("select", { onchange: e => set({ workEffort: e.target.value }) }, ...["low", "medium", "high"].map(v => el("option", { value: v, selected: (s.workEffort || "medium") === v }, v)))),
+      field("干活权限", el("select", { onchange: e => set({ workSandbox: e.target.value }) },
+        el("option", { value: "workspace-write", selected: (s.workSandbox || "workspace-write") === "workspace-write" }, "能改文件"),
+        el("option", { value: "read-only", selected: s.workSandbox === "read-only" }, "只读"))),
+      field("干活想多深", el("select", { onchange: e => set({ workEffort: e.target.value }) }, ...["low", "medium", "high"].map(v => el("option", { value: v, selected: (s.workEffort || "medium") === v }, v)))),
       el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { await api.invoke("chat:reset"); addMsg("sys", "它把之前的聊天忘了，重新开始。"); showTab("chat"); } }, "忘掉之前的聊天"))
     );
 
@@ -506,9 +505,9 @@ function renderSettings() {
   root.append(brainCard);
 
   // 声音
-  const keyIn = secretIn("minimaxKey", "粘贴 MiniMax 的 API Key");
+  const keyIn = secretIn("minimaxKey", "API Key");
   const hostSel = el("select", { onchange: e => set({ minimaxHost: e.target.value }) }, el("option", { value: "https://api.minimax.io", selected: s.minimaxHost === "https://api.minimax.io" }, "国际站 api.minimax.io"), el("option", { value: "https://api.minimaxi.com", selected: s.minimaxHost === "https://api.minimaxi.com" }, "国内站 api.minimaxi.com"));
-  const groupIn = el("input", { value: s.minimaxGroupId || "", placeholder: "国内站需要：账户信息里的 GroupId", onchange: e => set({ minimaxGroupId: e.target.value.trim() }) });
+  const groupIn = el("input", { value: s.minimaxGroupId || "", placeholder: "GroupId", onchange: e => set({ minimaxGroupId: e.target.value.trim() }) });
   const MODELS = ["speech-2.8-hd", "speech-2.8-turbo", "speech-2.6-hd", "speech-2.6-turbo", "speech-02-hd", "speech-02-turbo"];
   const modelSel = el("select", { onchange: e => set({ minimaxModel: e.target.value }) }, ...MODELS.map(m => el("option", { value: m, selected: (s.minimaxModel || "speech-2.8-hd") === m }, m + (m.endsWith("hd") ? "（更自然）" : "（便宜）"))));
   const readModelSel = el("select", { onchange: e => set({ readModel: e.target.value }) }, ...MODELS.map(m => el("option", { value: m, selected: (s.readModel || "speech-2.8-turbo") === m }, m)));
@@ -516,7 +515,7 @@ function renderSettings() {
   const voiceIn = el("input", { value: s.voiceId || "", placeholder: "voice_id", onchange: e => set({ voiceId: e.target.value.trim() }) });
   // 音色列表：可搜索，每行能试听、能选
   let voices = state.__voices || [];
-  const vsearch = el("input", { class: "grow plain", placeholder: "搜音色：萌、少女、男童、温柔…" });
+  const vsearch = el("input", { class: "grow plain", placeholder: "搜音色" });
   const vlist = el("div", { class: "vlist" });
   const REC = ["Chinese (Mandarin)_Cute_Spirit", "lovely_girl", "cute_boy", "Chinese (Mandarin)_Warm_Girl", "Chinese (Mandarin)_Crisp_Girl", "qiaopi_mengmei", "tianxin_xiaoling", "Cute_Elf", "Chinese (Mandarin)_Straightforward_Boy", "female-tianmei", "Chinese (Mandarin)_Sweet_Lady", "Chinese (Mandarin)_Gentle_Youth"];
   const isZh = v => /Chinese|Mandarin|Cantonese|[\u4e00-\u9fff]|^(female|male)-|cute|lovely|audiobook|girl|boy|spirit|sweet|gentle|warm|elf/i.test(v.id + v.name + v.desc);
@@ -561,8 +560,8 @@ function renderSettings() {
   };
   const showStatus = () => { status.innerHTML = state.voiceProvider === "minimax" ? '<span class="ok">现在用的是 MiniMax。</span>' : '<span class="bad">现在用的是本地系统语音。</span>填好 key 就会切过去。' + (state.voiceError ? ' 上次 MiniMax 报错：<code>' + state.voiceError + '</code>' : ""); };
   showStatus();
-  const provSel = el("select", { onchange: e => set({ voice: e.target.value }) }, el("option", { value: "minimax", selected: s.voice === "minimax" }, "MiniMax（好听）"), el("option", { value: "say", selected: s.voice === "say" }, "本地系统语音（免费、离线、难听）"));
-  const readSel = el("select", { onchange: e => set({ readWith: e.target.value }) }, el("option", { value: "minimax", selected: s.readWith === "minimax" }, "MiniMax（按字数计费）"), el("option", { value: "say", selected: s.readWith === "say" }, "本地系统语音（免费）"));
+  const provSel = el("select", { onchange: e => set({ voice: e.target.value }) }, el("option", { value: "minimax", selected: s.voice === "minimax" }, "MiniMax"), el("option", { value: "say", selected: s.voice === "say" }, "本地语音"));
+  const readSel = el("select", { onchange: e => set({ readWith: e.target.value }) }, el("option", { value: "minimax", selected: s.readWith === "minimax" }, "MiniMax"), el("option", { value: "say", selected: s.readWith === "say" }, "本地语音"));
   const saySel = el("select", { onchange: e => set({ sayVoice: e.target.value }) }, el("option", { value: s.sayVoice || "" }, s.sayVoice || "系统默认"));
   api.invoke("voice:listSay").then(r => { if (!(r.voices || []).length) return; saySel.innerHTML = ""; r.voices.forEach(v => saySel.append(el("option", { value: v.id, selected: v.id === s.sayVoice }, v.name + " (" + v.lang + ")"))); });
   const steps = el("ol", { class: "steps" });
@@ -579,17 +578,17 @@ function renderSettings() {
     field("音色 voice_id", voiceIn),
     el("div", { class: "row" }, vsearch, fetchBtn),
     vlist,
-    el("label", { class: "row", style: "gap:8px;align-items:center;margin-top:8px" }, el("input", { type: "checkbox", checked: s.charVoice !== false, onchange: e => set({ charVoice: e.target.checked }) }), el("span", {}, "二次元角色和英雄用各自配好的音色（关掉就都用上面选的）")),
-    field("语速", speed), field("语调（负数低沉，正数清亮）", pitch),
-    field("念长文章 / 小说的模型", readModelSel),
+    el("label", { class: "row", style: "gap:8px;align-items:center;margin-top:8px" }, el("input", { type: "checkbox", checked: s.charVoice !== false, onchange: e => set({ charVoice: e.target.checked }) }), el("span", {}, "每个角色用自己的音色")),
+    field("语速", speed), field("语调", pitch),
+    field("念长文的模型", readModelSel),
     el("div", { class: "row" }, el("button", { class: "btn small primary", onclick: async () => { status.textContent = "在合成…"; const r = await api.invoke("voice:test", {}); await refresh(); showStatus(); if (r.error) status.innerHTML += ' <span class="bad">' + r.error + "</span>"; } }, "试听一句"), el("button", { class: "btn small", onclick: () => api.invoke("voice:stop") }, "闭嘴")),
     status,
-    field("念长文章 / 小说时用", readSel), field("本地系统语音的音色", saySel),
+    field("念长文时用", readSel), field("系统语音音色", saySel),
     el("div", { class: "hint" }, "MiniMax 按字数计费：Turbo 约 60 美元 / 百万字，一本三十万字的小说约 18 美元；平时聊天几句话几乎不花钱。")
   ));
 
   // MCP
-  const mcpCard = card("它能碰的东西（MCP）");
+  const mcpCard = card("它能碰的东西");
   mcpCard.append(el("div", { class: "hint" }, "毛团自带：记事本、让别的程序叫它说话" + (state.platform === "darwin" ? "、控制本机「音乐」App" : "") + "。下面是你接进来的："));
   if (!(state.mcp || []).length) mcpCard.append(el("div", { class: "hint" }, "还没接东西。"));
   for (const m of state.mcp || []) {
@@ -619,23 +618,20 @@ function renderSettings() {
   root.append(hookCard);
 
   // 其它
-  const hk = el("input", { value: s.hotkey || "", placeholder: "比如 Alt+Shift+M，留空=不用" });
-  const vhk = el("input", { value: s.voiceHotkey || "", placeholder: "比如 Alt+Shift+V，留空=不用" });
+  const hk = el("input", { value: s.hotkey || "", placeholder: "Alt+Shift+M" });
+  const vhk = el("input", { value: s.voiceHotkey || "", placeholder: "Alt+Shift+V" });
   const clickSel = el("select", { onchange: e => set({ clicksToChat: Number(e.target.value) }) },
-    ...[[0, "不用点的（只用右键菜单和快捷键）"], [2, "双击它"], [3, "连点三下"], [4, "连点四下"]].map(([v, t]) => el("option", { value: v, selected: Number(s.clicksToChat || 0) === v }, t)));
-  root.append(card("语音输入（按住 🎙 说话）",
-    el("div", { class: "hint" }, "本地 Whisper 识别，离线、不上传。第一次用会下载模型（small 约 250MB，base 约 80MB 但中文差一些）。"),
-    field("模型", el("select", { onchange: e => set({ sttModel: e.target.value }) }, ...[["Xenova/whisper-small", "small（推荐，中文准）"], ["Xenova/whisper-base", "base（小、快、差一点）"], ["Xenova/whisper-medium", "medium（大、慢、更准）"]].map(([v, t]) => el("option", { value: v, selected: (s.sttModel || "Xenova/whisper-small") === v }, t)))),
-    field("模型下载走哪", el("select", { onchange: e => set({ hfMirror: e.target.value }) }, el("option", { value: "https://hf-mirror.com", selected: (s.hfMirror || "https://hf-mirror.com") === "https://hf-mirror.com" }, "hf-mirror.com（国内快）"), el("option", { value: "https://huggingface.co", selected: s.hfMirror === "https://huggingface.co" }, "huggingface.co"))),
+    ...[[0, "不用"], [2, "双击"], [3, "连点三下"], [4, "连点四下"]].map(([v, t]) => el("option", { value: v, selected: Number(s.clicksToChat || 0) === v }, t)));
+  root.append(card("语音输入",
+    field("模型", el("select", { onchange: e => set({ sttModel: e.target.value }) }, ...[["Xenova/whisper-small", "small"], ["Xenova/whisper-base", "base"], ["Xenova/whisper-medium", "medium"]].map(([v, t]) => el("option", { value: v, selected: (s.sttModel || "Xenova/whisper-small") === v }, t)))),
+    field("模型下载", el("select", { onchange: e => set({ hfMirror: e.target.value }) }, el("option", { value: "https://hf-mirror.com", selected: (s.hfMirror || "https://hf-mirror.com") === "https://hf-mirror.com" }, "hf-mirror.com"), el("option", { value: "https://huggingface.co", selected: s.hfMirror === "https://huggingface.co" }, "huggingface.co"))),
     el("div", { class: "row" }, el("button", { class: "btn small", onclick: async () => { const r = await api.invoke("stt:warm"); alert(r.error ? "没成：" + r.error : "模型准备好了。"); } }, "现在就下载模型"), el("span", { class: "hint" }, state.stt ? state.stt : ""))
   ));
   root.append(card("怎么叫出聊天窗",
-    el("div", { class: "hint" }, "点它只是逗它玩，不会弹窗。要说话就右键它 → 和它聊聊，或者用下面的快捷键。"),
-    field("连点它几下打开聊天窗", clickSel),
-    el("div", { class: "row" }, el("span", { class: "hint" }, "呼出 / 收起聊天窗"), hk, el("button", { class: "btn small", onclick: async () => { const r = await set({ hotkey: hk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
-    el("div", { class: "row" }, el("span", { class: "hint" }, "直接开口说话（打开窗口并开麦）"), vhk, el("button", { class: "btn small", onclick: async () => { const r = await set({ voiceHotkey: vhk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
-    el("div", { class: "hint" }, "快捷键写法：Alt / Ctrl / Shift / Command 加一个键，比如 Alt+Shift+M。被别的程序占了会提示你换一个。")
-  ));
+    field("连点几下开聊天窗", clickSel),
+    el("div", { class: "row" }, el("span", { class: "hint" }, "聊天窗"), hk, el("button", { class: "btn small", onclick: async () => { const r = await set({ hotkey: hk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
+    el("div", { class: "row" }, el("span", { class: "hint" }, "说话"), vhk, el("button", { class: "btn small", onclick: async () => { const r = await set({ voiceHotkey: vhk.value.trim() }); if (r && r.error) alert(r.error); } }, "改")),
+    ));
   root.append(card("其它",
     el("div", { class: "row" }, el("button", { class: "btn small", onclick: () => { wizStep = 0; showTab("wizard"); } }, "再看一遍新手引导")),
     toggle("开机就出来", !!state.loginItem, v => api.invoke("app:loginItem", { on: v })),
@@ -658,13 +654,13 @@ function mcpEditor(e) {
       else { const inp = el("input", { value: (e.fields || {})[f.key] || "", onchange: ev => { e.fields = e.fields || {}; e.fields[f.key] = ev.target.value.trim(); } }); box.append(field(f.label, inp)); }
     }
   } else {
-    const typeSel = el("select", { onchange: ev => { e.type = ev.target.value; } }, ...[["stdio", "本地命令（stdio）"], ["http", "网址（streamable http）"], ["sse", "网址（sse）"]].map(([v, t]) => el("option", { value: v, selected: (e.type || "stdio") === v }, t)));
+    const typeSel = el("select", { onchange: ev => { e.type = ev.target.value; } }, ...[["stdio", "本地命令"], ["http", "网址（streamable http）"], ["sse", "网址（sse）"]].map(([v, t]) => el("option", { value: v, selected: (e.type || "stdio") === v }, t)));
     box.append(field("类型", typeSel));
-    box.append(field("命令（stdio）", el("input", { value: e.command || "", placeholder: "npx", onchange: ev => { e.command = ev.target.value.trim(); } })));
-    box.append(field("参数（一行一个）", el("textarea", { class: "small", value: (e.args || []).join("\n"), onchange: ev => { e.args = ev.target.value.split("\n").map(x => x.trim()).filter(Boolean); } })));
-    box.append(field("环境变量（KEY=VALUE，一行一个）", el("textarea", { class: "small", value: Object.entries(e.env || {}).map(([k, v]) => k + "=" + v).join("\n"), onchange: ev => { e.env = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf("="); if (i > 0) e.env[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
-    box.append(field("网址（http / sse）", el("input", { value: e.url || "", placeholder: "https://…/mcp", onchange: ev => { e.url = ev.target.value.trim(); } })));
-    box.append(field("请求头（Header: value，一行一个）", el("textarea", { class: "small", value: Object.entries(e.headers || {}).map(([k, v]) => k + ": " + v).join("\n"), onchange: ev => { e.headers = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) e.headers[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
+    box.append(field("命令", el("input", { value: e.command || "", placeholder: "npx", onchange: ev => { e.command = ev.target.value.trim(); } })));
+    box.append(field("参数", el("textarea", { class: "small", value: (e.args || []).join("\n"), onchange: ev => { e.args = ev.target.value.split("\n").map(x => x.trim()).filter(Boolean); } })));
+    box.append(field("环境变量", el("textarea", { class: "small", value: Object.entries(e.env || {}).map(([k, v]) => k + "=" + v).join("\n"), onchange: ev => { e.env = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf("="); if (i > 0) e.env[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
+    box.append(field("网址", el("input", { value: e.url || "", placeholder: "https://…/mcp", onchange: ev => { e.url = ev.target.value.trim(); } })));
+    box.append(field("请求头", el("textarea", { class: "small", value: Object.entries(e.headers || {}).map(([k, v]) => k + ": " + v).join("\n"), onchange: ev => { e.headers = {}; ev.target.value.split("\n").forEach(l => { const i = l.indexOf(":"); if (i > 0) e.headers[l.slice(0, i).trim()] = l.slice(i + 1).trim(); }); } })));
   }
   box.append(el("div", { class: "row end" },
     el("button", { class: "btn small", onclick: () => { mcpEditing = null; renderSettings(); } }, "算了"),

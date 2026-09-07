@@ -20,7 +20,7 @@ const wowParams = { ParamEyeLOpen: 1.4, ParamEyeROpen: 1.4, ParamMouthOpenY: 0.4
 
 export const L2D_MODELS = {
   l2d_hiyori: {
-    dir: "Hiyori", name: "日和", full: "桃濑日和 Hiyori Momose", gender: "女", desc: "二次元女生 · Live2D：棕发双马尾、米色开衫校服 · 樱花特效", scale: 1.0, dy: 0, headY: 0.15,
+    dir: "Hiyori", name: "日和", full: "桃濑日和 Hiyori Momose", gender: "女", desc: "Live2D · 校服", scale: 1.0, dy: 0, headY: 0.15,
     theme: { love: "heart", colors: ["#F8B4C4", "#FCD5DF", "#F49BB0"] },
     moods: { happy: { params: { ParamEyeLSmile: 0.8, ParamEyeRSmile: 0.8, ParamMouthForm: 0.8 } }, thinking: { params: { ParamEyeBallX: 0.5, ParamEyeBallY: 0.6, ParamMouthForm: -0.3, ParamAngleZ: -6 } } },
     react: {
@@ -50,7 +50,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "我出{it}！赢啦赢啦～", lose: "我出{it}……输了呀。再来一次嘛。", tie: "我也出{it}！心有灵犀！" }, dice: { win: "我 {it} 点，你 {me} 点。嘿嘿，我运气好！", lose: "我 {it} 点，你 {me} 点……输给你啦。", tie: "都是 {it} 点，平手呀！" }, catch: { great: "{n} 个！你手好快呀！", ok: "接到 {n} 个，不错不错！", bad: "才 {n} 个……没关系，再来！" } }
   },
   l2d_haru: {
-    dir: "Haru", name: "春", full: "Haru", gender: "女", desc: "二次元女生 · Live2D：深紫短发、黑色职业装的前台小姐姐 · 金色彩带特效", scale: 1.0, dy: 0, headY: 0.17,
+    dir: "Haru", name: "春", full: "Haru", gender: "女", desc: "Live2D · 职业装", scale: 1.0, dy: 0, headY: 0.17,
     theme: { love: "sparkle", colors: ["#F2C46B", "#5C7CC9", "#FFFFFF"] },
     moods: { happy: { exp: "F01", params: { ParamEyeLSmile: 0.5, ParamEyeRSmile: 0.5 } }, thinking: { exp: "F08", params: { ParamEyeBallX: 0.4, ParamEyeBallY: 0.5 } } },
     react: {
@@ -80,7 +80,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "我出{it}。承让了，这局是我赢。", lose: "我出{it}……是您赢了，恭喜。", tie: "我们都出{it}，很默契呢。" }, dice: { win: "我 {it} 点，您 {me} 点。这局我拿下了。", lose: "我 {it} 点，您 {me} 点，您赢了。", tie: "都是 {it} 点，平局。" }, catch: { great: "{n} 个，太厉害了，我得给您鼓掌。", ok: "接到 {n} 个，很稳。", bad: "{n} 个……没关系，下次一定。" } }
   },
   l2d_rice: {
-    dir: "Rice", name: "莱丝", full: "Rice Glassfield", gender: "女", desc: "二次元女生 · Live2D：银白长发、蓝贝雷帽、白裙子 · 冰魔法阵特效", scale: 1.75, dy: 0, headY: 0.21,
+    dir: "Rice", name: "莱丝", full: "Rice Glassfield", gender: "女", desc: "Live2D · 贝雷帽", scale: 1.75, dy: 0, headY: 0.21,
     theme: { love: "snow", colors: ["#BFE6FF", "#FFFFFF"] },
     moods: { happy: { params: { ParamAngleZ: 4 } }, thinking: { params: { ParamAngleZ: -7, ParamEyeBallX: 0.5, ParamEyeBallY: 0.5 } } },
     react: {
@@ -110,7 +110,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "……{it}。我赢了。", lose: "{it}……输了。没关系。", tie: "……都是{it}。" }, dice: { win: "{it} 点……比你的 {me} 点多一点。", lose: "{it} 点……你的 {me} 点更大。", tie: "都是 {it} 点……" }, catch: { great: "{n} 个……好厉害。", ok: "{n} 个……不错。", bad: "{n} 个……再试一次吧。" } }
   },
   l2d_mao: {
-    dir: "Mao", name: "真绪", full: "虹色真绪 Niziiro Mao", gender: "女", desc: "二次元女生 · Live2D：橘发大魔女帽、彩色外套、拿着魔杖 · 彩虹魔法特效", scale: 1.0, dy: 0, headY: 0.19,
+    dir: "Mao", name: "真绪", full: "虹色真绪 Niziiro Mao", gender: "女", desc: "Live2D · 小魔女", scale: 1.0, dy: 0, headY: 0.19,
     theme: { love: "star", colors: ["#B48CFF", "#FFB347", "#7FC8A9", "#F08A9B"] },
     moods: { happy: { exp: "exp_01", params: { ParamCheek: 0.4 } }, thinking: { exp: "exp_08" }, sleepy: { exp: "exp_03" } },
     react: {
@@ -140,7 +140,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "我出{it}！魔法生效～我赢啦！", lose: "我出{it}……咒语念错了！", tie: "都是{it}？你偷看我魔法书了吧！" }, dice: { win: "{it} 点对 {me} 点，魔法骰子听我的！", lose: "{it} 点……骰子今天不听话。", tie: "都是 {it} 点，这也太巧了！" }, catch: { great: "{n} 个！你是不是也会魔法？", ok: "{n} 个，还行还行～", bad: "{n} 个……要不我给你的手施个咒？" } }
   },
   l2d_mark: {
-    dir: "Mark", name: "马克", full: "Mark-kun", gender: "男", desc: "二次元男生 · Live2D：大眼睛小男孩、红卫衣短裤 · 漫画集中线特效", scale: 1.1, dy: 0, headY: 0.3,
+    dir: "Mark", name: "马克", full: "Mark-kun", gender: "男", desc: "Live2D · 小男孩", scale: 1.1, dy: 0, headY: 0.3,
     theme: { love: "star", colors: ["#F2C46B", "#FF6B6B", "#FFFFFF"] },
     moods: { happy: { motion: ["Idle", 2] }, thinking: { motion: ["Idle", 3], params: { ParamEyeBallX: 0.5, ParamEyeBallY: -0.4 } } },
     react: {
@@ -170,7 +170,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "我出{it}！耶——我赢了！", lose: "我出{it}……啊，输了！再来再来！", tie: "都是{it}！好巧！" }, dice: { win: "{it} 点！比你的 {me} 点大！", lose: "才 {it} 点……你的 {me} 点好大。", tie: "都是 {it} 点！" }, catch: { great: "{n} 个！你太厉害了吧！", ok: "{n} 个！还不错！", bad: "{n} 个……再来一次！这次肯定行！" } }
   },
   l2d_natori: {
-    dir: "Natori", name: "名取", full: "名取仁 Jin Natori", gender: "男", desc: "二次元男生 · Live2D：深蓝发、黑西装蓝领带的青年（协作角色，仅限非商用）· 眼镜反光特效", scale: 1.0, dy: 0, headY: 0.17, license: "collab",
+    dir: "Natori", name: "名取", full: "名取仁 Jin Natori", gender: "男", desc: "Live2D · 西装", scale: 1.0, dy: 0, headY: 0.17, license: "collab",
     theme: { love: "sparkle", colors: ["#F2C46B", "#5C7CC9", "#FFFFFF"] },
     moods: { happy: { exp: "exp_01" }, thinking: { exp: "exp_03", params: { ParamEyeBallX: 0.4, ParamEyeBallY: 0.5 } }, sleepy: { exp: "exp_05" } },
     react: {
@@ -200,7 +200,7 @@ export const L2D_MODELS = {
     lines: { rps: { win: "我出{it}。承让。", lose: "我出{it}……输得心服口服。", tie: "都是{it}，看来想到一起去了。" }, dice: { win: "{it} 点对 {me} 点，运气站在我这边。", lose: "{it} 点……你的 {me} 点更胜一筹。", tie: "都是 {it} 点，平分秋色。" }, catch: { great: "{n} 个，身手不凡。", ok: "{n} 个，稳稳当当。", bad: "{n} 个……不急，慢慢来。" } }
   },
   l2d_wanko: {
-    dir: "Wanko", name: "年糕犬", full: "わんころもち Wankoromochi", gender: "犬", desc: "Live2D：蹲在碗里的白色小狗，附赠 · 骨头爪印特效", scale: 1.3, dy: 0, headY: 0.46,
+    dir: "Wanko", name: "年糕犬", full: "わんころもち Wankoromochi", gender: "犬", desc: "Live2D · 小狗", scale: 1.3, dy: 0, headY: 0.46,
     ids: { cheek: "PARAM_TERE", eyeL: "PARAM_EYE_L_OPEN", eyeR: "PARAM_EYE_R_OPEN", mouthOpen: "PARAM_MOUTH_OPEN_Y", mouthForm: "PARAM_MOUTH_FORM", angleZ: "PARAM_ANGLE_Z", angleY: "PARAM_ANGLE_Y", bodyZ: "PARAM_BODY_ANGLE_Z" },
     theme: { love: "paw", colors: ["#C68B59", "#FFF6E5"] },
     moods: { happy: { params: { PARAM_MOUTH_FORM: 1 } }, thinking: { params: { PARAM_ANGLE_Z: 12 } }, sleepy: { params: { PARAM_BOWL_LID: 1 } } },

@@ -19,18 +19,18 @@ import { withTaps } from "./taps.js";
 const basic = id => { const d = withTaps(SKIN_DEFAULTS[id] || {}, id); return { ...d, character: d }; };
 
 export const SKINS = {
-  fluff: { name: "毛团", make: withFx(makeFluff, basic("fluff")), desc: "羊毛毡的圆毛球，软软的" },
-  blob: { name: "像素团", make: makePixelSkin("blob", basic("blob")), desc: "照着参考图做的紫色像素团" },
-  jelly: { name: "水母", make: withFx(makeJelly, basic("jelly")), desc: "半透明的小水母，安安静静地漂着" },
-  slime: { name: "史莱姆", make: makeSlime, desc: "果冻一样，亮亮的，会晃" },
-  ghost: { name: "小幽灵", make: makeGhost, desc: "软软的，半透明，裙边会飘" },
-  orb: { name: "小澈", make: makeOrb, desc: "科技助手 · 悬浮的全息核心，三圈轨道环" },
-  term: { name: "小终", make: makeTerm, desc: "科技助手 · 会说话的终端窗口，绿字滚动" },
-  capsule: { name: "罐罐", make: makeCapsule, desc: "科技助手 · 白胶囊机器人，头顶小雷达" },
-  moon: { name: "小月", make: makeMoon, desc: "安静陪伴 · 月牙小夜灯，坐在云上" },
-  cube: { name: "方方", make: makeCube, desc: "科技助手 · 会转的立方体，等距视角" },
-  wisp: { name: "数萤", make: makeWisp, desc: "安静陪伴 · 一团会流动的数据光" },
-  robot: { name: "小机器人", make: makeRobot, desc: "小铁盒，脸是屏幕，眼睛是两道青光" }
+  fluff: { name: "毛团", make: withFx(makeFluff, basic("fluff")), desc: "羊毛毡" },
+  blob: { name: "像素团", make: makePixelSkin("blob", basic("blob")), desc: "像素" },
+  jelly: { name: "水母", make: withFx(makeJelly, basic("jelly")), desc: "半透明" },
+  slime: { name: "史莱姆", make: makeSlime, desc: "果冻" },
+  ghost: { name: "小幽灵", make: makeGhost, desc: "会飘" },
+  orb: { name: "小澈", make: makeOrb, desc: "全息光球" },
+  term: { name: "小终", make: makeTerm, desc: "终端窗口" },
+  capsule: { name: "罐罐", make: makeCapsule, desc: "胶囊机器人" },
+  moon: { name: "小月", make: makeMoon, desc: "月牙夜灯" },
+  cube: { name: "方方", make: makeCube, desc: "立方体" },
+  wisp: { name: "数萤", make: makeWisp, desc: "数据光" },
+  robot: { name: "小机器人", make: makeRobot, desc: "屏幕脸" }
 };
 for (const [id, sp] of Object.entries(SPRITES)) if (id !== "blob") SKINS[id] = { name: sp.name, make: makePixelSkin(id, basic(id)), desc: sp.desc };
 for (const [id, m] of Object.entries(L2D_MODELS)) SKINS[id] = { name: m.name, make: makeLive2D(id), desc: m.desc };

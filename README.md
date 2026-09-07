@@ -197,7 +197,7 @@ npm run dist:mac     # → dist/*.dmg
 npm run dist:win     # → dist/*-setup.exe, *-portable.exe
 ```
 
-CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.6.0`）就会在 macOS 和 Windows 上各打一份。
+CI 配置在 `ci/build.yml`：`gh auth refresh -s workflow` 后把它移到 `.github/workflows/build.yml`，推到 GitHub 打 tag（`v0.6.1`）就会在 macOS 和 Windows 上各打一份。
 
 开发时有几个环境变量方便调试：`MAOTUAN_SHOT=1`（把每个皮肤和面板截图到 `.shots/`）、`MAOTUAN_DEV=1`（详细日志）、`MAOTUAN_DEVCHAT="……"`（启动后自动聊一句）、`MAOTUAN_ICON=1`（把它渲染成应用图标）。外观规范在 `.claude/skills/fluff-art/SKILL.md`。
 

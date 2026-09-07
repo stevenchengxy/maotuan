@@ -1,7 +1,7 @@
 {
   "name": "maotuan",
   "productName": "毛团",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "一团住在桌面上的小毛团：陪你、跟你聊天、读东西给你听。",
   "main": "main/index.js",
   "type": "module",

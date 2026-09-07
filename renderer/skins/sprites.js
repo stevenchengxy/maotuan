@@ -2,7 +2,7 @@
 // eyes: 左眼与右眼左上角所在的 [行, 列]，w/h 是眼睛几格。mouth: 说话时嘴出现的位置。
 export const SPRITES = {
   blob: {
-    name: "像素团", desc: "和参考图一样的紫色像素团",
+    name: "像素团", desc: "像素",
     body: "#8360F7", dark: "#5B3FD6", accent: "#22E7FF", tile: false,
     rows: [
       "...######...",
@@ -18,7 +18,7 @@ export const SPRITES = {
     eyes: { row: 3, cols: [3, 7], w: 2, h: 2 }, mouth: { row: 6, col: 5, w: 2 }, blush: false
   },
   pjelly: {
-    name: "像素水母", desc: "同一套像素风的小水母，触手会摆",
+    name: "像素水母", desc: "像素",
     body: "#5FC8FF", dark: "#2E8FD6", accent: "#FF7BAC", tile: false,
     rows: [
       "....####....",
@@ -33,7 +33,7 @@ export const SPRITES = {
     eyes: { row: 3, cols: [3, 7], w: 2, h: 2 }, mouth: { row: 5, col: 5, w: 2 }, float: true
   },
   pcat: {
-    name: "像素猫", desc: "有耳朵和小鼻子的像素猫",
+    name: "像素猫", desc: "像素",
     body: "#F6B26B", dark: "#C9843B", accent: "#FF7BAC", tile: false,
     rows: [
       ".#........#.",
@@ -49,7 +49,7 @@ export const SPRITES = {
     eyes: { row: 4, cols: [3, 7], w: 2, h: 2 }, nose: { row: 6, col: 5, w: 2 }, mouth: { row: 7, col: 5, w: 2 }
   },
   pghost: {
-    name: "像素幽灵", desc: "白白的，飘着，裙边会动",
+    name: "像素幽灵", desc: "像素",
     body: "#F4F1FF", dark: "#C9C2E8", accent: "#8360F7", tile: false,
     rows: [
       "....####....",
@@ -65,7 +65,7 @@ export const SPRITES = {
     eyes: { row: 3, cols: [3, 7], w: 2, h: 2 }, mouth: { row: 6, col: 5, w: 2 }, float: true, wave: true, eyeColor: "#2A2440"
   },
   probot: {
-    name: "像素机器人", desc: "方方的，眼睛是两条青色的灯",
+    name: "像素机器人", desc: "像素",
     body: "#B8C0D6", dark: "#7C8699", accent: "#22E7FF", tile: false,
     rows: [
       ".....A......",
@@ -81,7 +81,7 @@ export const SPRITES = {
     eyes: { row: 3, cols: [3, 7], w: 2, h: 1, color: "#22E7FF" }, mouth: { row: 6, col: 4, w: 4, style: "grid" }, blush: false
   },
   pslime: {
-    name: "像素史莱姆", desc: "绿绿的一坨，会晃",
+    name: "像素史莱姆", desc: "像素",
     body: "#7CE38B", dark: "#3FA352", accent: "#FFFFFF", tile: false,
     rows: [
       ".....##.....",
