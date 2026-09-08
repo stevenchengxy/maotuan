@@ -68,7 +68,7 @@ export class CharArt {
       for (let tryN = 1; tryN <= 3; tryN++) {
         report(Math.round(tryN * 20), "表情表");
         try {
-          const hint = tryN === 1 ? "" : ` Last try drew a background: flat solid ${CHARS[id].screen || "green (#00FF00)"} everywhere except the character.`;
+          const hint = tryN === 1 ? "" : " Last try drew a background: use flat solid green everywhere except the character.";
           await generateImage(this.store, { prompt: sheetPrompt(id) + hint, aspect: "1:1", file: sheet });
           const g = await screenIsClean(sheet, magenta);
           if (!g.ok) { this.log("[charart] 表情表幕布不干净，重画", id, Math.round(g.green * 100) + "%", "第" + tryN + "次"); continue; }

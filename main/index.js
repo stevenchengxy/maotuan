@@ -510,10 +510,43 @@ async function devShots() {
   log("devShots 开始");
   const dir = path.join(ROOT, ".shots"); fs.mkdirSync(dir, { recursive: true });
   const shot = async (win, name) => { const img = await win.webContents.capturePage(); fs.writeFileSync(path.join(dir, name + ".png"), img.toPNG()); };
+  // 问渲染层现在画的到底是谁
+  const whoami = () => new Promise(r => { const t = setTimeout(() => r("?"), 2000); ipcMain.once("pet:whoami", (_e, d) => { clearTimeout(t); r(d && d.skin); }); sendPet("pet:whoami", {}); });
+  // 截图前必须确认画的就是这个角色——历史上截出过一整张对不上名字的合照
+  const useSkin = async (id, settle = 1400) => {
+    store.patchSettings({ skin: id }); sendPet("state", publicState());
+    if (id.startsWith("l2d_")) await waitL2D(id, 120000);
+    for (let i = 0; i < 12; i++) {
+      await new Promise(r => setTimeout(r, i === 0 ? settle : 400));
+      const who = await whoami();
+      if (who === id) return true;
+      log("devShots 等", id, "现在是", who);
+    }
+    log("!! devShots 换不过去，跳过", id);
+    return false;
+  };
+  // 每一张都再确认一次，对不上就重来；始终对不上就不写这张图
+  const shotAs = async (id, name, wait = 0) => {
+    for (let i = 0; i < 3; i++) {
+      if (wait) await new Promise(r => setTimeout(r, wait));
+      if (await whoami() === id) { await shot(pet, name); return true; }
+      log("!! devShots 画的不是", id, "重来", name);
+      if (!(await useSkin(id))) return false;
+    }
+    log("!! devShots 放弃", name);
+    return false;
+  };
   try {
     const orig = store.settings.skin;
     const only = process.env.MAOTUAN_SHOT_ONLY || "";
-    for (const [id] of SKIN_LIST) { if (only && !id.startsWith(only)) continue; store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 120000); await new Promise(r => setTimeout(r, 1400)); sendPet("pet:say", { text: "" }); await new Promise(r => setTimeout(r, 250)); await shot(pet, "pet-" + id); sendPet("pet:pet"); await new Promise(r => setTimeout(r, 350)); await shot(pet, "pet-" + id + "-pet"); }
+    for (const [id] of SKIN_LIST) {
+      if (only && !id.startsWith(only)) continue;
+      if (!(await useSkin(id))) continue;
+      sendPet("pet:say", { text: "" });
+      await shotAs(id, "pet-" + id, 250);
+      sendPet("pet:pet");
+      await shotAs(id, "pet-" + id + "-pet", 350);
+    }
     if (process.env.MAOTUAN_DEVSTREAM) {   // 问一句长的，看气泡是不是一句一句冒
       const wait = ms => new Promise(r => setTimeout(r, ms));
       runChat(process.env.MAOTUAN_DEVSTREAM);
@@ -533,8 +566,8 @@ async function devShots() {
       const evs = ["scene:greet", "scene:back", "scene:bored", "scene:think", "scene:done", "scene:feed", "scene:night", "scene:listen"];
       for (const [id] of SKIN_LIST) {
         if (want !== "1" && !want.split(",").includes(id)) continue;
-        store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(1500);
-        for (const ev of evs) { sendPet("pet:scene", { ev }); await wait(500); await shot(pet, `scene-${id}-${ev.slice(6)}`); await wait(1600); }
+        if (!(await useSkin(id, 1500))) continue;
+        for (const ev of evs) { sendPet("pet:scene", { ev }); await shotAs(id, `scene-${id}-${ev.slice(6)}`, 500); await wait(1600); }
       }
     }
     if (process.env.MAOTUAN_DEVCHAR) {   // 画角色："ai_shiba,ai_cat" 或 "1"=全部
@@ -563,17 +596,27 @@ async function devShots() {
       const want = process.env.MAOTUAN_DEVTAP;
       for (const [id] of SKIN_LIST) {
         if (want !== "1" && !want.split(",").includes(id)) continue;
-        store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(1600);
-        const shown = await new Promise(r => { const t = setTimeout(() => r("?"), 2000); ipcMain.once("pet:whoami", (_e, d) => { clearTimeout(t); r(d && d.skin); }); sendPet("pet:whoami", {}); });
-        log("DEVTAP", id, "渲染中的是", shown);
+        if (!(await useSkin(id, 1600))) continue;
+        log("DEVTAP", id, "开拍");
         if (process.env.MAOTUAN_DEVDIAG && id.startsWith("l2d_")) {
           const info = await new Promise(r => { const t = setTimeout(() => r(null), 3000); ipcMain.once("live2d:info", (_e, d) => { clearTimeout(t); r(d); }); sendPet("live2d:query", {}); });
           log("DIAG", id, JSON.stringify(info && info.diag), "motions", JSON.stringify(info && info.motions));
         }
         for (const ev of ["tap:0", "tap:1", "tap:2", "tap:3", "tap:many"]) {
-          sendPet("pet:react", { ev }); await wait(420); await shot(pet, `tap-${id}-${ev.replace(":", "_")}`); await wait(1400);
+          sendPet("pet:react", { ev }); await shotAs(id, `tap-${id}-${ev.replace(":", "_")}`, 420); await wait(1400);
         }
       }
+    }
+    if (process.env.MAOTUAN_DEVPARAMS) {   // 把每个模型的参数取值范围导出来，给校验脚本用
+      const out = {};
+      for (const [id] of SKIN_LIST) {
+        if (!id.startsWith("l2d_")) continue;
+        if (!(await useSkin(id, 1200))) continue;
+        const info = await new Promise(r => { const t = setTimeout(() => r(null), 4000); ipcMain.once("live2d:info", (_e, d) => { clearTimeout(t); r(d); }); sendPet("live2d:query", {}); });
+        out[id] = (info && info.diag && info.diag.params) || {};
+        log("DEVPARAMS", id, Object.keys(out[id]).length, "个参数");
+      }
+      fs.writeFileSync("/tmp/l2d-params.json", JSON.stringify(out));
     }
     if (process.env.MAOTUAN_DEVPARAM) {   // "l2d_wanko:PARAM_FACE_01=1;l2d_wanko:PARAM_BOWL_LID=0"
       const wait = ms => new Promise(r => setTimeout(r, ms)); let last = "";
@@ -586,12 +629,18 @@ async function devShots() {
     }
     if (process.env.MAOTUAN_DEVREACT) {
       const wait = ms => new Promise(r => setTimeout(r, ms));
-      const evs = [["rps:win", 650], ["rps:lose", 650], ["dice:win", 550], ["catch:great", 750], ["pet", 500]];
+      const evs = ["rps:win", "rps:lose", "dice:win", "catch:great", "pet"];
+      const AT = (process.env.MAOTUAN_DEVREACT_AT || "450,850,1350").split(",").map(Number);
       for (const [id] of SKIN_LIST) {
         if (!id.startsWith("l2d_")) continue;
         if (process.env.MAOTUAN_DEVREACT !== "1" && !process.env.MAOTUAN_DEVREACT.split(",").includes(id)) continue;
-        store.patchSettings({ skin: id }); sendPet("state", publicState()); if (id.startsWith("l2d_")) await waitL2D(id, 60000); await wait(900);
-        for (const [ev, ms] of evs) { sendPet("pet:react", { ev }); await wait(ms); await shot(pet, `react-${id}-${ev.replace(":", "_")}`); await wait(2600); }
+        if (!(await useSkin(id, 900))) continue;
+        for (const ev of evs) {
+          sendPet("pet:react", { ev });
+          let last = 0;
+          for (const t of AT) { await shotAs(id, `react-${id}-${ev.replace(":", "_")}-${t}`, t - last); last = t; }
+          await wait(2600);
+        }
       }
     }
     if (process.env.MAOTUAN_DEVMOTIONS) {

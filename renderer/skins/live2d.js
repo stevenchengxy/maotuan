@@ -230,6 +230,13 @@ export function makeLive2D(id) {
         const cm = model.internalModel.coreModel; const diag = {};
         try { diag.parts = (cm._partIds || (cm.getPartIds && cm.getPartIds()) || []).slice(0, 60); } catch {}
         try { diag.eyeL = cm.getParameterValueById(IDS.eyeL); diag.eyeR = cm.getParameterValueById(IDS.eyeR); } catch {}
+        // 每个参数的取值范围：写超了不会报错，只会悄悄跳到别的档
+        // （小春的 PARAM_HAND_SWITCH 写成 2，手里的绒球就换成了旗子）
+        try {
+          const ids = cm._parameterIds || (cm.getParameterIds && cm.getParameterIds()) || [];
+          diag.params = {};
+          for (let i = 0; i < ids.length; i++) diag.params[ids[i]] = [cm.getParameterMinimumValue(i), cm.getParameterMaximumValue(i), cm.getParameterDefaultValue(i)];
+        } catch (e) { diag.paramsError = String(e && e.message || e); }
         try { diag.eyeBlink = !!model.internalModel.eyeBlink; diag.breath = !!model.internalModel.breath; } catch {}
         mt.send("live2d:info", { id, motions: Object.fromEntries(Object.entries(defs).map(([g, v]) => [g, (v || []).length])), expressions: em ? em.definitions.map(d => d.Name || d.name) : [], diag });
       });

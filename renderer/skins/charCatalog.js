@@ -89,11 +89,11 @@ export const sheetPrompt = id => {
   return [
     "A 2x2 grid of four pictures of ONE character, two rows of two, thin gaps with nothing drawn in them.",
     `Character: ${c.look}, ${SHEET_POSE}.`,
-    "All four cells show the same character at the same size in the same pose, same outfit, same colours, same art style. ONLY the face differs. Follow the cell order exactly:",
-    "Top-left cell: eyes wide open looking straight at the viewer, mouth closed in a soft small smile.",
-    "Top-right cell: asleep — both eyes shut into two calm downward curves, mouth closed, no tears.",
-    "Bottom-left cell: laughing — eyes curved into upward arcs, wide open smiling mouth, both cheeks pink.",
-    "Bottom-right cell: crying and clearly unhappy — eyes squeezed shut, brows tilted up, mouth open in a wail, big tear drops on the cheeks, definitely NOT smiling, no sparkles.",
+    "All four cells: same character, same size, same pose, same outfit, same colours, same art style. ONLY the face differs. Follow the cell order exactly:",
+    "Top-left: eyes wide open looking at the viewer, mouth closed in a soft small smile.",
+    "Top-right: asleep — both eyes shut into calm downward curves, mouth closed, no tears.",
+    "Bottom-left: laughing — eyes curved into upward arcs, wide open smiling mouth, pink cheeks, absolutely no tears.",
+    "Bottom-right: crying, clearly unhappy — eyes squeezed shut, brows tilted up, mouth open in a wail, big tears, NOT smiling, no sparkles.",
     `Background everywhere, inside and between cells, is one flat solid pure chroma-key ${c.screen || "green (#00FF00)"}: no borders, frames, labels, scenery, floor, shadow, gradient, vignette or texture.`,
     SHEET_STYLE,
   ].join(" ");

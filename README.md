@@ -61,6 +61,8 @@
 
 **八个使用场景**也各有各的反应和台词：换成这个样子、主人离开很久回来、发呆太久、正在想事情、Codex 跑完了来报喜、吃下你丢给它的文件、深夜还在用、你按住麦克风对它说话。
 
+<p align="center"><img src="docs/taps-sheet.png" width="860" alt="31 套皮肤各自的点击反应"></p>
+
 <p align="center"><img src="docs/scenes-sheet.png" width="860" alt="八个使用场景"></p>
 
 ## 二次元角色（Live2D）
